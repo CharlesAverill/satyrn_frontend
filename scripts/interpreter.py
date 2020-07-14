@@ -13,6 +13,8 @@ global_vars = {}
 global local_vars
 local_vars = {}
 
+arg = sys.argv[1]
+
 print(chr(27) + "[2J")
 
 """
@@ -126,7 +128,6 @@ class Cell():
 
     def __str__(self):
         return self.name + "\n\n" + "```\n" + self.content + "```\n"
-
 
 class Graph:
 
@@ -701,7 +702,9 @@ class Interpreter:
     def run(self):
         # Main application loop
         while True:
-            command = self.read_input()
+            #command = self.read_input()
+
+            command = arg.split(" ")[0]
 
             if len(command) == 0:
                 continue
