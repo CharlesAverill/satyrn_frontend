@@ -1,0 +1,24 @@
+{
+  "name": "satyrn",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CharlesAverill/satyrn_frontend.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/CharlesAverill/satyrn_frontend/issues"
+  },
+  "homepage": "https://github.com/CharlesAverill/satyrn_frontend#readme",
+  "dependencies": {
+    "electron": "^9.1.0",
+    "electron-reload": "^1.5.0",
+    "python-shell": "^2.0.1"
+  }
+}
