@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>jQuery UI Draggable - Default functionality</title>
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="/resources/demos/style.css">
+
+
+    <style>
+        #draggable {
+            width: 150px;
+            height: 150px;
+            padding: 0.5em;
+            position: absolute;
+        }
+
+        #scene {
+            background: #2f3640;
+            /*
+            background-image: radial-gradient(#353b48 3px, transparent 0);
+            background-size: 40px 40px;
+            background-position: -19px -19px;
+            */
+        }
+
+        .custom-menu {
+            display: none;
+            z-index: 1000;
+            position: absolute;
+            overflow: hidden;
+            border: 1px solid #CCC;
+            white-space: nowrap;
+            font-family: sans-serif;
+            background: #FFF;
+            color: #333;
+            border-radius: 5px;
+            padding: 0;
+        }
+
+        /* Each of the items in the list */
+        .custom-menu li {
+            padding: 8px 12px;
+            cursor: pointer;
+            list-style-type: none;
+            transition: all .3s ease;
+            user-select: none;
+        }
+
+        .custom-menu li:hover {
+            background-color: #DEF;
+        }
+
+    </style>
+
+</head>
+
+<body id="scene">
+
+    <div id="draggable" style="background-color:aqua;">
+        <p>Drag me around</p>
+    </div>
+
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.js"></script>
+
+    <ul class='custom-menu'>
+        <li data-action="newPanel">Create new panel</li>
+        <li data-action="second">Second thing</li>
+        <li data-action="third">Third thing</li>
+    </ul>
+
+    <script src='https://unpkg.com/panzoom@9.2.4/dist/panzoom.min.js'></script>
+    <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script>
+        function newName() {
+            return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        }
+
+        //Make initial panel draggable
+        $(function() {
+            $("#draggable").draggable();
+        });
+
+        //panzoom scene
+        var element = document.querySelector('#scene')
+
+        panzoom(element, {
+            beforeMouseDown: function(e) {
+                var shouldIgnore = !e.altKey;
+                return shouldIgnore;
+            }
+        });
+
+        //context menu
+        // Trigger action when the contexmenu is about to be shown
+        $(document).bind("contextmenu", function(event) {
+
+            // Avoid the real one
+            event.preventDefault();
+
+            // Show contextmenu
+            $(".custom-menu").finish().toggle(100).
+
+            // In the right position (the mouse)
+            css({
+                top: event.pageY + "px",
+                left: event.pageX + "px"
+            });
+        });
+
+
+        // If the document is clicked somewhere
+        $(document).bind("mousedown", function(e) {
+
+            // If the clicked element is not the menu
+            if (!$(e.target).parents(".custom-menu").length > 0) {
+
+                // Hide it
+                $(".custom-menu").hide(100);
+            }
+        });
+
+
+        // If the menu element is clicked
+        $(".custom-menu li").click(function() {
+
+            // This is the triggered action name
+            switch ($(this).attr("data-action")) {
+
+                // A case for each action. Your actions here
+                case "newPanel":
+                    var name = newName();
+                    $("#scene").append('<div id="draggable" class="'.concat(name, '"style="background-color:aqua;"><p>Drag me around</p></div>'));
+
+
+                    $(".".concat(name)).draggable();
+                    break;
+                case "second":
+                    alert("second");
+                    break;
+                case "third":
+                    alert("third");
+                    break;
+            }
+
+            // Hide it AFTER the action was triggered
+            $(".custom-menu").hide(100);
+        });
+
+    </script>
+</body>
+
+</html>
