@@ -69,7 +69,6 @@ $(".custom-menu li").click(function (event) {
                 type : "GET",
                 url : '/create_cell/',
                 dataType: "text",
-                //data : "",
                 success: function (data) {
                     $("#scene").append('<div id="draggable" class="'.concat(data, '"><h6 class="label">' + data + '</h6><div class="draggable"><div class="highlightBlue"></div><textarea></textarea></div></div>'))
 

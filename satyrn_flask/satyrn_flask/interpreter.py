@@ -1,13 +1,10 @@
+import networkx as nx
 import matplotlib.pyplot as plt
 import io as StringIO
 import tkinter as tk
 
-import networkx as nx
-from flask import Flask
-
 import contextlib
 import sys
-import os
 
 import threading
 
@@ -16,6 +13,7 @@ global_vars = {}
 global local_vars
 local_vars = {}
 
+print(chr(27) + "[2J")
 
 """
 Structure Guide
