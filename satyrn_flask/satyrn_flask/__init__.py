@@ -1,4 +1,4 @@
-import os, random, string
+import os, random, string, json, sys, contextlib, threading
 
 from flask import Flask, send_from_directory, render_template, request
 
@@ -6,11 +6,6 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import io as StringIO
 import tkinter as tk
-
-import contextlib
-import sys
-
-import threading
 
 global global_vars
 global_vars = {}
@@ -364,6 +359,8 @@ class Graph:
             for n in neighbors:
                 neighbor_cell = self.get_cell(self.get_lookup_table()[n])
                 neighbor_cell.stdout = stdout
+
+                print(neighbor_cell.name)
 
                 neighbor = threading.Thread(target=neighbor_cell.execute)
 
@@ -745,6 +742,21 @@ def create_app(test_config=None):
     def create_cell():
         name = new_name()
         interpreter.create_cell(["create_cell", name, "python", "n"])
-        print(interpreter.graph.graph.nodes())
         return name
+
+    @app.route("/destroy_cell/", methods=["POST"])
+    def destroy_cell():
+        cell_name = request.get_json()
+        print(cell_name)
+
+        initial_length = len(interpreter.graph.graph.nodes())
+
+        interpreter.remove_cell(["remove", cell_name])
+
+        success = "false"
+        if initial_length == len(interpreter.graph.graph.nodes()):
+            success = "true"
+
+        return success
+
     return app

@@ -19,11 +19,18 @@ panzoom(element, {
 });
 */
 
+var right_clicked_cell;
+
 //context menu
 // Trigger action when the contexmenu is about to be shown
 $("#scene").on("contextmenu", "#draggable",function (event) {
     // Avoid the real one
     event.preventDefault();
+
+    var $this = $(this);
+    var cl = $this.attr("class")
+
+    right_clicked_cell = cl.substring(0, cl.indexOf("ui-draggable") - 1);
     
     // Show contextmenu
     $(".custom-menu").finish().toggle(100).
@@ -35,6 +42,10 @@ $("#scene").on("contextmenu", "#draggable",function (event) {
         left: event.pageX + "px"
     });
 });
+
+$("#draggable").on("contextmenu", "#draggable", function(event){
+
+})
 
 
 // If the document is clicked somewhere
@@ -80,8 +91,23 @@ $(".custom-menu li").click(function (event) {
                 }
             });
             break;
-        case "second":
-            alert("second");
+        case "destroyCell":
+            $.ajax({
+                type : "POST",
+                url : '/destroy_cell/',
+                dataType: "json",
+                data: JSON.stringify(right_clicked_cell),
+                contentType: "application/json",
+                success: function (success) {
+                    if(success == "false"){
+                        alert("Couldn't remove cell " + right_clicked_cell);
+                    }
+                    else{
+                        console.log(right_clicked_cell + " ui-draggable ui-draggable-handle");
+                        $("div").remove("." + right_clicked_cell);
+                    }
+                }
+            });
             break;
         case "third":
             alert("third");
