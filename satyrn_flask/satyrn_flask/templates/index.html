@@ -20,13 +20,20 @@
             <textarea></textarea>
         </div>
     </div>
+    {{ draggable_area }}
     <!-- Draggables End-->
 
     <!--Context Menu Begin-->
     <ul class='custom-menu'>
-        <li data-action="newCell">Create Cell</li>
-        <li data-action="destroyNode">Destroy Cell</li>
-        <li data-action="duplicateNode">Duplicate Cell</li>
+        <form action="/create_cell/" method="GET">
+            <li data-action="newCell">Create Cell</li>
+        </form>
+        <form action="/destroy_cell/" method="GET">
+            <li data-action="destroyNode">Destroy Cell</li>
+        </form>
+        <form action="/dupe_cell/" method="GET">
+            <li data-action="duplicateNode">Duplicate Cell</li>
+        </form>
     </ul>
     <!--Context Menu End-->
 

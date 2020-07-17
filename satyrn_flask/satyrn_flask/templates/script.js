@@ -57,10 +57,29 @@ $(".custom-menu li").click(function (event) {
     switch ($(this).attr("data-action")) {
 
         // A case for each action. Your actions here
+        /*
         case "newCell":
             var new_cell = new Cell(newName());
             cells.push(new_cell);
             new_cell.append(event);
+            break;
+        */
+        case "newCell":
+            $.ajax({
+                type : "GET",
+                url : '/create_cell/',
+                dataType: "text",
+                //data : "",
+                success: function (data) {
+                    $("#scene").append('<div id="draggable" class="'.concat(data, '"><h6 class="label">' + data + '</h6><div class="draggable"><div class="highlightBlue"></div><textarea></textarea></div></div>'))
+
+                    $(".".concat(data)).css("top", (Math.ceil(event.pageY / 30 )*30)-4 );
+                    $(".".concat(data)).css("left", (Math.ceil(event.pageX / 30 )*30)-4 );
+
+                    //Grid system
+                    $(".".concat(data)).draggable({ snap: ".".concat(data), grid: [ 30, 30 ] });
+                }
+            });
             break;
         case "second":
             alert("second");

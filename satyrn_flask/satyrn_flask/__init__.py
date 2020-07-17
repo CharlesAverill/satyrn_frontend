@@ -1,7 +1,13 @@
-import os
+import os, random, string
 
-from flask import Flask, send_from_directory, render_template
+from flask import Flask, send_from_directory, render_template, request
 
+from .interpreter import Interpreter
+
+def new_name():
+    letters_and_digits = string.ascii_letters + string.digits
+    result_str = ''.join((random.choice(letters_and_digits) for i in range(16)))
+    return result_str
 
 def create_app(test_config=None):
     # create and configure the app
@@ -23,11 +29,6 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    # a simple page that says hello
-    @app.route('/hello')
-    def hello():
-        return 'Hello, World!'
-
     @app.route("/")
     def index():
         return render_template("index.html")
@@ -40,5 +41,9 @@ def create_app(test_config=None):
     def script_js():
         return render_template("script.js")
 
+    @app.route("/create_cell/", methods=["GET"])
+    def create_cell():
+        name = new_name()
+        return name
     return app
 
