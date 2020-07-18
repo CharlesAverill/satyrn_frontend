@@ -804,4 +804,10 @@ def create_app(test_config=None):
 
         return "true"
 
+    @app.route("/bfs_execute/", methods=["POST"])
+    def bfs_execute():
+        interpreter.execute(["execute"])
+
+        return "true"
+
     return app

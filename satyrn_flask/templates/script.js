@@ -94,43 +94,7 @@ $(document).bind("mousedown", function (e) {
     // If the clicked element is not the menu
     if (!attempting_to_link && started_ta_edit && currentVal != null && !$(e.target).parents(".transparent_text").length > 0 && !$(e.target).parents(".draggable").length > 0) {
         // Hide it
-        if(renaming){
-            has_changed = true;
-            $.ajax({
-                type : "POST",
-                url : '/rename_cell/',
-                dataType: "json",
-                data: JSON.stringify({'old_name': clicked_textarea,
-                    'new_name': currentVal}),
-                contentType: "application/json",
-                success: function (success) {
-                    if(success == "false"){
-                        alert("Couldn't rename cell " + right_clicked_cell);
-                    }
-                    else{
-                        clicked_textarea = currentVal;
-                    }
-                }
-            });
-        }
-        else{
-            $.ajax({
-                type : "POST",
-                url : '/edit_cell/',
-                dataType: "json",
-                data: JSON.stringify({'name': ta_class,
-                    'content': currentVal}),
-                contentType: "application/json",
-                success: function (success) {
-                    if(success == "false"){
-                        alert("Couldn't edit cell " + right_clicked_cell);
-                    }
-                    else{
-                        var succ = true;
-                    }
-                }
-            });
-        }
+
         started_ta_edit = false;
     }
 });
@@ -138,11 +102,47 @@ $(document).bind("mousedown", function (e) {
 $(document).on("input propertychange", 'textarea', function() {
     currentVal = $(this).val();
 
-    console.log("this " + $(this));
-
     ta_class = $(this).attr("class").substring(9);
 
-    console.log(ta_class);
+    if(renaming){
+        has_changed = true;
+        $.ajax({
+            type : "POST",
+            url : '/rename_cell/',
+            dataType: "json",
+            data: JSON.stringify({'old_name': clicked_textarea,
+                'new_name': currentVal}),
+            contentType: "application/json",
+            success: function (success) {
+                if(success == "false"){
+                    alert("Couldn't rename cell " + right_clicked_cell);
+                }
+                else{
+                    clicked_textarea = currentVal;
+                }
+            }
+        });
+    }
+    else{
+        $.ajax({
+            type : "POST",
+            url : '/edit_cell/',
+            dataType: "json",
+            data: JSON.stringify({'name': ta_class,
+                'content': currentVal}),
+            contentType: "application/json",
+            success: function (success) {
+                if(success == "false"){
+                    alert("Couldn't edit cell " + right_clicked_cell);
+                }
+                else{
+                    var succ = true;
+                }
+            }
+        });
+    }
+
+    started_ta_edit = false;
 });
 
 // If the document is clicked somewhere
@@ -166,7 +166,7 @@ $(".custom-menu li").click(function (event) {
 
         // A case for each action. Your actions here
 
-        case "newCell":
+        case "new_cell":
             $.ajax({
                 type : "GET",
                 url : '/create_cell/',
@@ -189,7 +189,7 @@ $(".custom-menu li").click(function (event) {
                 }
             });
             break;
-        case "destroyCell":
+        case "destroy_cell":
             $.ajax({
                 type : "POST",
                 url : '/destroy_cell/',
@@ -206,10 +206,18 @@ $(".custom-menu li").click(function (event) {
                 }
             });
             break;
-        case "third":
-            alert("third");
+        case "bfs_execute":
+            $.ajax({
+                type : "POST",
+                url : '/bfs_execute/',
+                success: function (success) {
+                    if(success == "false"){
+                        alert("There was an error with the execution");
+                    }
+                }
+            });
             break;
-        case "linkCell":
+        case "link_cell":
             attempting_to_link = true;
             $("textarea").attr("disabled","disabled");
             break;
