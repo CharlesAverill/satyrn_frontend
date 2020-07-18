@@ -43,10 +43,36 @@ $("#scene").on("contextmenu", "#draggable",function (event) {
     });
 });
 
-$("#draggable").on("contextmenu", "#draggable", function(event){
+var oldVal = "";
+$(document).on("change keyup paste", 'textarea', function() {
+    var currentVal = $(this).val();
+    if(currentVal == oldVal) {
+        return; //check to prevent multiple simultaneous triggers
+    }
 
-})
+    var textarea = $(this);
 
+    oldVal = currentVal;
+    //action to be performed on textarea changed
+    var ta_class = $(this).attr("class").substring(9);
+
+    $.ajax({
+        type : "POST",
+        url : '/edit_cell/',
+        dataType: "json",
+        data: JSON.stringify({'name': ta_class,
+                                     'content': currentVal}),
+        contentType: "application/json",
+        success: function (success) {
+            if(success == "false"){
+                alert("Couldn't edit cell " + right_clicked_cell);
+            }
+            else{
+                var succ = true;
+            }
+        }
+    });
+});
 
 // If the document is clicked somewhere
 $(document).bind("mousedown", function (e) {
@@ -81,7 +107,7 @@ $(".custom-menu li").click(function (event) {
                 url : '/create_cell/',
                 dataType: "text",
                 success: function (data) {
-                    $("#scene").append('<div id="draggable" class="'.concat(data, '"><h6 class="label">' + data + '</h6><div class="draggable"><div class="highlightBlue"></div><textarea></textarea></div></div>'))
+                    $("#scene").append('<div id="draggable" class="'.concat(data, '"><h6 class="label">' + data + '</h6><div class="draggable"><div class="highlightBlue"></div><textarea class="textarea_' + data + '"></textarea></div></div>'))
 
                     $(".".concat(data)).css("top", (Math.ceil(event.pageY / 30 )*30)-4 );
                     $(".".concat(data)).css("left", (Math.ceil(event.pageX / 30 )*30)-4 );

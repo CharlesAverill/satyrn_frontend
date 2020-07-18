@@ -526,7 +526,7 @@ class Interpreter:
         :param command: command to be executed
         """
         if len(command) != 2:
-            print("link takes 1 arguments: [cell_name]")
+            print("edit takes 1 argument: [cell_name]")
             return
 
         target_cell = self.graph.get_cell(command[1])
@@ -536,6 +536,10 @@ class Interpreter:
         new_content = ti.text_input(old_content).strip()
 
         target_cell.content = new_content
+
+    def set_cell_contents(self, command):
+        target_cell = self.graph.get_cell(command[1])
+        target_cell.content = command[2]
 
     def rename_cell(self, command):
         """
@@ -747,7 +751,6 @@ def create_app(test_config=None):
     @app.route("/destroy_cell/", methods=["POST"])
     def destroy_cell():
         cell_name = request.get_json()
-        print(cell_name)
 
         initial_length = len(interpreter.graph.graph.nodes())
 
@@ -758,5 +761,17 @@ def create_app(test_config=None):
             success = "true"
 
         return success
+
+    @app.route("/edit_cell/", methods=["POST"])
+    def edit_cell():
+        data = request.get_json()
+        cell_name = data['name']
+        content = data['content']
+
+        interpreter.set_cell_contents(['edit_cell', cell_name, content])
+
+        print(interpreter.graph.get_cell(cell_name).content)
+
+        return "true"
 
     return app
