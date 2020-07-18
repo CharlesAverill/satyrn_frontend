@@ -31,47 +31,90 @@ $("#scene").on("contextmenu", "#draggable",function (event) {
     var cl = $this.attr("class")
 
     right_clicked_cell = cl.substring(0, cl.indexOf("ui-draggable") - 1);
-    
+
     // Show contextmenu
     $(".custom-menu").finish().toggle(100).
 
     // In the right position (the mouse)
-    
+
     css({
         top: event.pageY + "px",
         left: event.pageX + "px"
     });
 });
 
-var oldVal = "";
-$(document).on("change keyup paste", 'textarea', function() {
-    var currentVal = $(this).val();
-    if(currentVal == oldVal) {
-        return; //check to prevent multiple simultaneous triggers
+var clicked_textarea = "";
+var renaming = false;
+var currentVal = "";
+var ta_class = "";
+var started_ta_edit = false;
+
+$("textarea").click(function(){
+    if($(this).attr("class") == "transparent_text"){
+        clicked_textarea = $(this).val();
+        renaming = true;
     }
+    else{
+        renaming = false;
+    }
+    started_ta_edit = true;
+});
 
-    var textarea = $(this);
+$(document).bind("mousedown", function (e) {
+    console.log(renaming);
+    // If the clicked element is not the menu
+    if (started_ta_edit && currentVal != "" && !$(e.target).parents(".transparent_text").length > 0 && !$(e.target).parents(".draggable").length > 0) {
 
-    oldVal = currentVal;
-    //action to be performed on textarea changed
-    var ta_class = $(this).attr("class").substring(9);
-
-    $.ajax({
-        type : "POST",
-        url : '/edit_cell/',
-        dataType: "json",
-        data: JSON.stringify({'name': ta_class,
-                                     'content': currentVal}),
-        contentType: "application/json",
-        success: function (success) {
-            if(success == "false"){
-                alert("Couldn't edit cell " + right_clicked_cell);
-            }
-            else{
-                var succ = true;
-            }
+        // Hide it
+        if(renaming){
+            has_changed = true;
+            $.ajax({
+                type : "POST",
+                url : '/rename_cell/',
+                dataType: "json",
+                data: JSON.stringify({'old_name': clicked_textarea,
+                    'new_name': currentVal}),
+                contentType: "application/json",
+                success: function (success) {
+                    if(success == "false"){
+                        alert("Couldn't rename cell " + right_clicked_cell);
+                    }
+                    else{
+                        clicked_textarea = currentVal;
+                    }
+                }
+            });
         }
-    });
+        else{
+            console.log(ta_class);
+            console.log(currentVal);
+            $.ajax({
+                type : "POST",
+                url : '/edit_cell/',
+                dataType: "json",
+                data: JSON.stringify({'name': ta_class,
+                    'content': currentVal}),
+                contentType: "application/json",
+                success: function (success) {
+                    if(success == "false"){
+                        alert("Couldn't edit cell " + right_clicked_cell);
+                    }
+                    else{
+                        var succ = true;
+                    }
+                }
+            });
+        }
+        started_ta_edit = false;
+    }
+});
+
+$(document).on("change keyup paste", 'textarea', function() {
+    currentVal = $(this).val();
+
+    console.log("this " + $(this));
+
+    ta_class = $(this).attr("class").substring(9);
 });
 
 // If the document is clicked somewhere
@@ -107,7 +150,14 @@ $(".custom-menu li").click(function (event) {
                 url : '/create_cell/',
                 dataType: "text",
                 success: function (data) {
-                    $("#scene").append('<div id="draggable" class="'.concat(data, '"><h6 class="label">' + data + '</h6><div class="draggable"><div class="highlightBlue"></div><textarea class="textarea_' + data + '"></textarea></div></div>'))
+                    $("#scene").append('<div id="draggable" class="'.concat(data, '"><textarea class="transparent_text" rows=1 spellcheck="false" maxlength=25\n' +
+                        '            style="border: none;\n' +
+                        '                    background-color: transparent;\n' +
+                        '                    border-color: Transparent;\n' +
+                        '                    resize: none;\n' +
+                        '                    outline: none;\n' +
+                        '\n' +
+                        '                    color:white;">' + data + '</textarea><div class="draggable"><div class="highlightBlue"></div><textarea class="textarea_' + data + '" spellcheck="false"></textarea></div></div>'))
 
                     $(".".concat(data)).css("top", (Math.ceil(event.pageY / 30 )*30)-4 );
                     $(".".concat(data)).css("left", (Math.ceil(event.pageX / 30 )*30)-4 );
