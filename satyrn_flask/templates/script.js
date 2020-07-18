@@ -25,6 +25,12 @@ var right_clicked_cell;
 // Trigger action when the contexmenu is about to be shown
 $("#scene").on("contextmenu", "#draggable",function (event) {
     // Avoid the real one
+
+    if(attempting_to_link){
+        attempting_to_link = false;
+        $("textarea").removeAttr("disabled");
+    }
+
     event.preventDefault();
 
     var $this = $(this);
@@ -45,11 +51,13 @@ $("#scene").on("contextmenu", "#draggable",function (event) {
 
 var clicked_textarea = "";
 var renaming = false;
-var currentVal = "";
+var currentVal = null;
 var ta_class = "";
 var started_ta_edit = false;
 
-$("textarea").click(function(){
+var attempting_to_link = false;
+
+$(document).on("click", "textarea", (function(){
     if($(this).attr("class") == "transparent_text"){
         clicked_textarea = $(this).val();
         renaming = true;
@@ -58,13 +66,33 @@ $("textarea").click(function(){
         renaming = false;
     }
     started_ta_edit = true;
-});
+}));
+
+$(document).on("click", "#draggable", (function(){
+    if(attempting_to_link){
+        attempting_to_link = false;
+        $("textarea").removeAttr("disabled");
+        clicked_textarea = $(this).attr("class").substring(0, $(this).attr("class").indexOf("ui-draggable") - 1);
+
+        $.ajax({
+            type : "POST",
+            url : '/link_cells/',
+            dataType: "json",
+            data: JSON.stringify({'first': right_clicked_cell,
+                'second': clicked_textarea}),
+            contentType: "application/json",
+            success: function (success) {
+                if(success == "false"){
+                    alert("Couldn't link cells " + right_clicked_cell + " and " + clicked_textarea);
+                }
+            }
+        });
+    }
+}));
 
 $(document).bind("mousedown", function (e) {
-    console.log(renaming);
     // If the clicked element is not the menu
-    if (started_ta_edit && currentVal != "" && !$(e.target).parents(".transparent_text").length > 0 && !$(e.target).parents(".draggable").length > 0) {
-
+    if (!attempting_to_link && started_ta_edit && currentVal != null && !$(e.target).parents(".transparent_text").length > 0 && !$(e.target).parents(".draggable").length > 0) {
         // Hide it
         if(renaming){
             has_changed = true;
@@ -86,8 +114,6 @@ $(document).bind("mousedown", function (e) {
             });
         }
         else{
-            console.log(ta_class);
-            console.log(currentVal);
             $.ajax({
                 type : "POST",
                 url : '/edit_cell/',
@@ -109,12 +135,14 @@ $(document).bind("mousedown", function (e) {
     }
 });
 
-$(document).on("change keyup paste", 'textarea', function() {
+$(document).on("input propertychange", 'textarea', function() {
     currentVal = $(this).val();
 
     console.log("this " + $(this));
 
     ta_class = $(this).attr("class").substring(9);
+
+    console.log(ta_class);
 });
 
 // If the document is clicked somewhere
@@ -186,6 +214,10 @@ $(".custom-menu li").click(function (event) {
             break;
         case "third":
             alert("third");
+            break;
+        case "linkCell":
+            attempting_to_link = true;
+            $("textarea").attr("disabled","disabled");
             break;
     }
 

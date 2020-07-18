@@ -579,14 +579,15 @@ class Interpreter:
 
         idx1 = self.graph.name_to_idx(command[1])
         idx2 = self.graph.name_to_idx(command[2])
-
+        """
         if idx2 == 0:
             confirm = input("WARNING: You are attempting to connect a node to your root node. This could cause unwanted"
                             " recursive behavior. Are you sure? (y/n) ")
             if "y" in confirm.lower():
                 self.graph.connect_cells(idx1, idx2)
         else:
-            self.graph.connect_cells(idx1, idx2)
+        """
+        self.graph.connect_cells(idx1, idx2)
 
     def sever(self, command):
         """
@@ -779,8 +780,6 @@ def create_app(test_config=None):
 
         interpreter.set_cell_contents(['edit_cell', cell_name, content])
 
-        print(interpreter.graph.get_cell(cell_name).content)
-
         return "true"
 
     @app.route("/rename_cell/", methods=["POST"])
@@ -790,6 +789,18 @@ def create_app(test_config=None):
         new_name = data['new_name']
 
         interpreter.rename_cell(['edit_cell', old_name, new_name])
+
+        return "true"
+
+    @app.route("/link_cells/", methods=["POST"])
+    def link_cells():
+        data = request.get_json()
+        first = data['first']
+        second = data['second']
+
+        interpreter.link(['link', first, second])
+
+        interpreter.list_cells()
 
         return "true"
 

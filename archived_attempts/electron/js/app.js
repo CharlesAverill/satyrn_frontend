@@ -69,18 +69,3 @@ class Node
         });
     }
 }
-
-function Log(arg)
-{
-    var options = {
-        scriptPath: path.join(__dirname,'../scripts/'),
-        args: [arg]
-    }
-
-    var script = new PythonShell('interpreter.py',options);
-
-    script.on('message',function(message)
-    {
-        alert(message);
-    });
-}

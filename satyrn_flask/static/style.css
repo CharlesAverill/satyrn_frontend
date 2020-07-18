@@ -65,6 +65,13 @@
     background-position: -19px -19px;
 }
 
+#navbar {
+    background: #2f3640;
+    background-image: radial-gradient(#353b48 3px, transparent 0);
+    background-size: 30px 30px;
+    background-position: -19px -19px;
+}
+
 .custom-menu {
     display: none;
     z-index: 1000;
