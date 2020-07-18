@@ -165,13 +165,7 @@ $(".custom-menu li").click(function (event) {
     switch ($(this).attr("data-action")) {
 
         // A case for each action. Your actions here
-        /*
-        case "newCell":
-            var new_cell = new Cell(newName());
-            cells.push(new_cell);
-            new_cell.append(event);
-            break;
-        */
+
         case "newCell":
             $.ajax({
                 type : "GET",
@@ -224,27 +218,3 @@ $(".custom-menu li").click(function (event) {
     // Hide it AFTER the action was triggered
     $(".custom-menu").hide(100);
 });
-
-class Cell{
-    constructor(name, prev_cell){
-        self.name = name;
-        self.prev_cell = prev_cell;
-    }
-
-    get name(){
-        return self.name;
-    }
-
-    append(event){
-        $("#scene").append('<div id="draggable" class="'.concat(self.name, '"><h6 class="label">' + self.name + '</h6><div class="draggable"><div class="highlightBlue"></div><textarea></textarea></div></div>'))
-        $(".".concat(self.name)).css("top", (Math.ceil(event.pageY / 30 )*30)-4 );
-        $(".".concat(self.name)).css("left", (Math.ceil(event.pageX / 30 )*30)-4 );
-
-        //Grid system
-        $(".".concat(self.name)).draggable({ snap: ".".concat(self.name), grid: [ 30, 30 ] });
-    }
-
-    remove(){
-        $(self.name).remove()
-    }
-}
