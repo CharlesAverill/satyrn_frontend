@@ -65,13 +65,6 @@
     background-position: -19px -19px;
 }
 
-#navbar {
-    background: #2f3640;
-    background-image: radial-gradient(#353b48 3px, transparent 0);
-    background-size: 30px 30px;
-    background-position: -19px -19px;
-}
-
 .custom-menu {
     display: none;
     z-index: 1000;
@@ -96,4 +89,63 @@
 
 .custom-menu li:hover {
     background-color: #dcdde1;
+}
+
+.nav {
+    display: block;
+    font: 13px Helvetica, Tahoma, serif;
+    text-transform: uppercase;
+    margin: 0;
+    padding: 0;
+}
+
+.nav li {
+    display: inline-block;
+    list-style: none;
+}
+
+.nav .button-dropdown {
+    position: relative;
+}
+
+.nav li a {
+    display: inline-block; !important;
+    color: #333;
+    background-color: #fff;
+    padding: 10px 20px;
+    text-decoration: none;
+}
+
+.nav li a span {
+    display: inline-block;
+    margin-left: 5px;
+    font-size: 10px;
+    color: #999;
+}
+
+.nav li a:hover, .nav li a.dropdown-toggle.active {
+    background-color: #289dcc;
+    color: #fff;
+}
+
+.nav li a:hover span, .nav li a.dropdown-toggle.active span {
+    color: #fff;
+}
+
+.nav li .dropdown-menu {
+    display: none;
+    position: absolute;
+    left: 0;
+    padding: 0;
+    margin: 0;
+    margin-top: 3px;
+    text-align: left;
+}
+
+.nav li .dropdown-menu.active {
+    display: block;
+}
+
+.nav li .dropdown-menu a {
+    width: 150px;
 }

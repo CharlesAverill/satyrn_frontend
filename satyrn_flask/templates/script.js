@@ -1,7 +1,3 @@
-function newName() {
-    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-}
-
 //Make initial panel draggable
 $(function () {
     $("#draggable").draggable({ snap: "#draggable", grid: [ 30, 30 ] });
@@ -19,6 +15,65 @@ panzoom(element, {
 });
 */
 
+//Navbar stuff
+$(document).on("click", "a", function(){
+    var attr = $(this).attr("action");
+    switch(attr){
+        case "shutdown":
+            if(confirm("This will close the connection. Are you sure?")){
+                $.ajax({
+                    type : "POST",
+                    url : '/shutdown/',
+                    complete: function (s) {
+                        alert("Connection has been closed");
+                    }
+                });
+            }
+            break;
+        case "run_all":
+            $.ajax({
+                type : "POST",
+                url : '/root_has_outputs/',
+                complete: function (s) {
+                    if(s['responseText'] == "warning"){
+                        if(confirm("The root node has no outward links. Code execution starts at root, so this may result in unintended consequences. Continue?")){
+                            bfs_execute();
+                        }
+                    }
+                    else{
+                        bfs_execute();
+                    }
+                }
+            });
+            break;
+        case "save_graph_as":
+            var satx_text = "";
+            $.ajax({
+                type : "POST",
+                url : '/get_satx_text/',
+                dataType: "json",
+                data: JSON.stringify({'text': ""}),
+                contentType: "application/json",
+                complete: function (s) {
+                    satx_text = s['responseText'];
+                    console.log(satx_text);
+
+                    var dwnld_ele = document.createElement('a');
+                    dwnld_ele.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURI(satx_text));
+                    dwnld_ele.setAttribute('download', 'Untitled.satx');
+
+                    dwnld_ele.style.display = 'none';
+                    document.body.appendChild(dwnld_ele);
+                    dwnld_ele.click();
+                    document.body.removeChild(dwnld_ele);
+                }
+            });
+
+            break;
+    }
+})
+
+//store class of last right-clicked cell
 var right_clicked_cell;
 
 //context menu
@@ -49,15 +104,22 @@ $("#scene").on("contextmenu", "#draggable",function (event) {
     });
 });
 
+//store class of left-clicked textarea
 var clicked_textarea = "";
+//bool for if renaming cell or not
 var renaming = false;
+//store cell's current contents/name
 var currentVal = null;
+//I forget the difference between this and clicked_textarea but it works so don't mess with it
 var ta_class = "";
+//bool for if user has started to edit textarea
 var started_ta_edit = false;
-
+//bool for if user is linking one cell to another
 var attempting_to_link = false;
 
+//when a textarea is clicked
 $(document).on("click", "textarea", (function(){
+    //if it's a cell name textarea
     if($(this).attr("class") == "transparent_text"){
         clicked_textarea = $(this).val();
         renaming = true;
@@ -68,25 +130,49 @@ $(document).on("click", "textarea", (function(){
     started_ta_edit = true;
 }));
 
+//linking logic
 $(document).on("click", "#draggable", (function(){
     if(attempting_to_link){
         attempting_to_link = false;
         $("textarea").removeAttr("disabled");
         clicked_textarea = $(this).attr("class").substring(0, $(this).attr("class").indexOf("ui-draggable") - 1);
 
+        var continue_with_link = true;
+
+        if(clicked_textarea == right_clicked_cell){
+            return;
+        }
+
         $.ajax({
             type : "POST",
-            url : '/link_cells/',
+            url : '/recursion_check/',
             dataType: "json",
-            data: JSON.stringify({'first': right_clicked_cell,
-                'second': clicked_textarea}),
+            data: JSON.stringify({'cell_name': clicked_textarea}),
             contentType: "application/json",
-            success: function (success) {
-                if(success == "false"){
-                    alert("Couldn't link cells " + right_clicked_cell + " and " + clicked_textarea);
+            complete: function (s) {
+                console.log(s['responseText']);
+                if(s['responseText'] == "warning"){
+                    if(!confirm("Linking to a cell with output links can cause undesired recursion. Are you sure?")){
+                        continue_with_link = false;
+                    }
                 }
             }
         });
+        if(continue_with_link) {
+            $.ajax({
+                type : "POST",
+                url : '/link_cells/',
+                dataType: "json",
+                data: JSON.stringify({'first': right_clicked_cell,
+                    'second': clicked_textarea}),
+                contentType: "application/json",
+                success: function (success) {
+                    if(success == "false"){
+                        alert("Couldn't link cells " + right_clicked_cell + " and " + clicked_textarea);
+                    }
+                }
+            });
+        }
     }
 }));
 
@@ -209,10 +295,15 @@ $(".custom-menu li").click(function (event) {
         case "bfs_execute":
             $.ajax({
                 type : "POST",
-                url : '/bfs_execute/',
-                success: function (success) {
-                    if(success == "false"){
-                        alert("There was an error with the execution");
+                url : '/root_has_outputs/',
+                complete: function (s) {
+                    if(s['responseText'] == "warning"){
+                        if(confirm("The root node has no outward links. Code execution starts at root, so this may result in unintended consequences. Continue?")){
+                            bfs_execute();
+                        }
+                    }
+                    else{
+                        bfs_execute();
                     }
                 }
             });
@@ -226,3 +317,15 @@ $(".custom-menu li").click(function (event) {
     // Hide it AFTER the action was triggered
     $(".custom-menu").hide(100);
 });
+
+function bfs_execute(){
+    $.ajax({
+        type : "POST",
+        url : '/bfs_execute/',
+        success: function (success) {
+            if(success == "false"){
+                alert("There was an error with the execution");
+            }
+        }
+    });
+}
