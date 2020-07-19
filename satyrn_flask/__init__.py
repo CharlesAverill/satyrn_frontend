@@ -360,8 +360,6 @@ class Graph:
                 neighbor_cell = self.get_cell(self.get_lookup_table()[n])
                 neighbor_cell.stdout = stdout
 
-                print(neighbor_cell.name)
-
                 neighbor = threading.Thread(target=neighbor_cell.execute)
 
                 neighbor.start()
@@ -408,6 +406,31 @@ class Graph:
 
         with open(filename, "w+") as file:
             file.write(txtout)
+
+    def get_satx_as_txt(self):
+        txtout = ""
+
+        lookup_table = self.get_lookup_table()
+        cell_names, edges, _ = self.get_all_cells_edges()
+        cells = [self.get_cell(cn) for cn in cell_names]
+
+        for c in cells:
+            if c.content:
+                fill_with_code = "y:\n"
+            else:
+                fill_with_code = "n\n"
+            temp_text = "cell " + c.name + " " + c.content_type + " " + fill_with_code
+            if fill_with_code == "y:\n":
+                temp_text += c.content + ";\n"
+
+            txtout += temp_text
+
+        for e in edges:
+            name1 = lookup_table[e[0]]
+            name2 = lookup_table[e[1]]
+            txtout += "link " + name1 + " " + name2 + "\n"
+
+        return txtout
 
 
 class Interpreter:
@@ -792,15 +815,42 @@ def create_app(test_config=None):
 
         return "true"
 
+    @app.route("/recursion_check/", methods=["POST"])
+    def recursion_check():
+        data = request.get_json()
+        cell_name = data['cell_name']
+
+        nodes, _, edge_names = interpreter.graph.get_all_cells_edges()
+
+        for e in edge_names:
+            if e[0] == cell_name:
+                return "warning"
+
+        return "safe"
+
+    @app.route("/root_has_outputs/", methods=["POST"])
+    def root_output_check():
+        c = 0
+
+        nodes, _, edge_names = interpreter.graph.get_all_cells_edges()
+        for e in edge_names:
+            if e[0] == "root":
+                c += 1
+
+        if c > 0:
+            return "safe"
+        return "warning"
+
     @app.route("/link_cells/", methods=["POST"])
     def link_cells():
         data = request.get_json()
         first = data['first']
         second = data['second']
 
-        interpreter.link(['link', first, second])
+        if(first == second):
+            return "false"
 
-        interpreter.list_cells()
+        interpreter.link(['link', first, second])
 
         return "true"
 
@@ -809,5 +859,19 @@ def create_app(test_config=None):
         interpreter.execute(["execute"])
 
         return "true"
+
+    @app.route("/shutdown/", methods=["POST"])
+    def shutdown():
+        funct = request.environ.get('werkzeug.server.shutdown')
+        if funct is None:
+            raise RuntimeError("Not running with the Werkzeug Server")
+        funct()
+
+        return "done"
+
+    @app.route("/get_satx_text/", methods=["POST"])
+    def get_satx_text():
+        satx_txt = interpreter.graph.get_satx_as_txt()
+        return satx_txt
 
     return app
