@@ -15,6 +15,8 @@
     <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
     <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
 
+    <input id="file-input" type="file" name="name" style="display: none;" accept=".SATX, .satx"/>
+
     <div class="title-bar">
         <div style="width: 25%; display: inline-block;">
             <img src="../static/cover.png" height="50%" width="50%">
@@ -30,7 +32,7 @@
             <li> <a>File <i class="fa fa-caret-down"></i> </a>
                 <ul class="sub-menu">
                     <li> <a action="new_graph">New Graph</a> </li>
-                    <li> <a action="open_grpah">Open Graph</a> </li>
+                    <li> <a action="load_graph">Load Graph</a> </li>
                     <li> <a action="copy_graph">Make a Copy...</a> </li>
                     <li> <a action="save_graph_as">Save as...</a> </li>
                     <li> <a action="rename">Rename...</a> </li>
@@ -58,6 +60,7 @@
             <li> <a>Kernel <i class="fa fa-caret-down"></i> </a>
                 <ul class="sub-menu">
                     <li> <a action="interrupt">Interrupt</a> </li>
+                    <li> <a action="reset_runtime">Rest Runtime</a> </li>
                     <li> <a action="restart_run_all">Restart & Run All</a> </li>
                     <li> <a action="shutdown">Shutdown</a> </li>
                 </ul>
