@@ -40,6 +40,9 @@
 
 .label {
     color:white;
+    font: 13px Helvetica, Tahoma, serif;
+    margin-top: 5px;
+    margin-bottom: 5px;
 }
 
 .highlightGreen {
@@ -74,7 +77,7 @@
     white-space: nowrap;
     background: #f5f6fa;
     color: #333;
-//border-radius: 5px;
+    //border-radius: 5px;
     padding: 0;
 }
 
@@ -85,67 +88,9 @@
     list-style-type: none;
     transition: all .3s ease;
     user-select: none;
+    font: 13px Helvetica, Tahoma, serif;
 }
 
 .custom-menu li:hover {
     background-color: #dcdde1;
-}
-
-.nav {
-    display: block;
-    font: 13px Helvetica, Tahoma, serif;
-    #text-transform: uppercase;
-    margin: 0;
-    padding: 0;
-}
-
-.nav li {
-    display: inline-block;
-    list-style: none;
-}
-
-.nav .button-dropdown {
-    position: relative;
-}
-
-.nav li a {
-    display: inline-block; !important;
-    color: #333;
-    background-color: #fff;
-    padding: 10px 20px;
-    text-decoration: none;
-}
-
-.nav li a span {
-    display: inline-block;
-    margin-left: 5px;
-    font-size: 10px;
-    color: #999;
-}
-
-.nav li a:hover, .nav li a.dropdown-toggle.active {
-    background-color: #289dcc;
-    color: #fff;
-}
-
-.nav li a:hover span, .nav li a.dropdown-toggle.active span {
-    color: #fff;
-}
-
-.nav li .dropdown-menu {
-    display: none;
-    position: absolute;
-    left: 0;
-    padding: 0;
-    margin: 0;
-    margin-top: 3px;
-    text-align: left;
-}
-
-.nav li .dropdown-menu.active {
-    display: block;
-}
-
-.nav li .dropdown-menu a {
-    width: 150px;
 }

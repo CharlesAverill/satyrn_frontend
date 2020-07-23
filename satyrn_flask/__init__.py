@@ -12,6 +12,9 @@ global_vars = {}
 global local_vars
 local_vars = {}
 
+global dynamic_cell_output
+dynamic_cell_output = ""
+
 """
 Structure Guide
 
@@ -121,6 +124,9 @@ class Cell():
         global_vars.update(gcopy)
         local_vars.update(lcopy)
 
+        global dynamic_cell_output
+        dynamic_cell_output += self.name + ":\n" + self.output + "\n\n"
+
     def __str__(self):
         return self.name + "\n\n" + "```\n" + self.content + "```\n"
 
@@ -139,6 +145,8 @@ class Graph:
         local_vars = {}
         # TextIO object
         self.ti = TextIO()
+
+        self.executing = False
 
     def get_lookup_table(self):
         return {idx: moniker for moniker, idx in
@@ -342,6 +350,10 @@ class Graph:
 
     def bfs_traversal_execute(self, stdout="internal", output_filename="stdout.txt"):
         std_file_out = ""
+        global dynamic_cell_output
+        dynamic_cell_output = ""
+
+        self.executing = True
 
         root_cell = self.get_cell("", 0)
         root_cell.stdout = stdout
@@ -380,6 +392,8 @@ class Graph:
         if stdout == "external":
             with open(output_filename, 'w') as txt:
                 txt.write(std_file_out)
+
+        self.executing = False
 
     def save_graph(self, filename):
         txtout = ""
@@ -545,7 +559,6 @@ class Interpreter:
                 content = ti.text_input().strip()
 
         self.graph.add_cell(Cell(name, content_type, content))
-        print(self.list_cells())
 
     def edit_cell(self, command):
         """
@@ -770,9 +783,17 @@ def create_app(test_config=None):
     def index():
         return render_template("index.html")
 
-    @app.route("/style.css")
-    def syle_css():
-        return render_template("style.css")
+    @app.route("/canvas.html")
+    def canvas():
+        return render_template("canvas.html")
+
+    @app.route("/index_style.css")
+    def index_style():
+        return render_template("index_style.css")
+
+    @app.route("/canvas_style.css")
+    def canvas_style():
+        return render_template("canvas_style.css")
 
     @app.route("/script.js")
     def script_js():
@@ -803,8 +824,6 @@ def create_app(test_config=None):
         data = request.get_json()
         cell_name = data['name'].strip()
         content = data['content'].strip()
-
-        print(cell_name + " " + content)
 
         interpreter.set_cell_contents(['edit_cell', cell_name, content])
 
@@ -905,6 +924,14 @@ def create_app(test_config=None):
         if cell_name in interpreter.graph.get_all_cells_edges()[0]:
             return "true"
         return "false"
+
+    @app.route("/dynamic_cell_output/", methods=["GET"])
+    def get_dynamic_cell_output():
+        global dynamic_cell_output
+        if interpreter.graph.executing:
+            return render_template("dynamic_cell_output.html", dynamic_cell_output=dynamic_cell_output)
+        print(dynamic_cell_output)
+        return "done_executing;" + dynamic_cell_output
 
 
     return app
