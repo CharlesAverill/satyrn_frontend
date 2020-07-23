@@ -1,7 +1,92 @@
 var filename = "Untitled.SATX";
+var num_cells = 1;
+
+$(window).load(function () {
+    $.ajax({
+        type : "POST",
+        url : "/load_graph/",
+        dataType: "json",
+        data: JSON.stringify({'file_contents': '',
+            'load_from_file': false}),
+        contentType: "application/json",
+        success: function (data) {
+            var names = data['names'];
+            var contents = data['contents'];
+            var content_types = data['content_types'];
+            var links = data['links'];
+
+            if(names.length != contents.length){
+                alert("Loading error: names and contents are not congruent")
+            }
+            else{
+                if(names.length == 0){
+                    return;
+                }
+                for(var i = 0; i < num_cells; i++){
+                    $("iframe").contents().find("#draggable").remove();
+                }
+                num_cells = 0;
+                for(var i = 0; i < names.length; i++){
+                    create_cell($("iframe").contents(), names[i], contents[i]);
+                }
+            }
+        }
+    });
+});
+
+$("#file-input").change(function(e){
+    filename = e.target.files[0].name;
+
+    var file_contents = "";
+
+    var reader = new FileReader();
+
+    reader.readAsText(e.target.files[0], "UTF-8");
+    reader.onload = function(evt){
+        file_contents = evt.target.result;
+        $("#graph_name_p").text(filename);
+
+        $.ajax({
+            type : "POST",
+            url : "/load_graph/",
+            dataType: "json",
+            data: JSON.stringify({'file_contents': file_contents,
+                                        'load_from_file': true}),
+            contentType: "application/json",
+            success: function (data) {
+                var names = data['names'];
+                var contents = data['contents'];
+                var content_types = data['content_types'];
+                var links = data['links'];
+
+                if(names.length != contents.length){
+                    alert("Loading error: names and contents are not congruent")
+                }
+                else{
+                    for(var i = 0; i < num_cells; i++){
+                        $("iframe").contents().find("#draggable").remove();
+                    }
+                    num_cells = 0;
+
+                    for(var i = 0; i < names.length; i++){
+                        create_cell($("iframe").contents(), names[i], contents[i]);
+                    }
+
+                    $("#file-input").val(null);
+                }
+            }
+        });
+    }
+    reader.onerror = function(evt){
+        alert("There was an issue reading " + filename);
+    }
+})
 
 $("#graph_name_p").on("click", function(){
     var new_name = prompt("New Graph name: ");
+    if(new_name === null){
+        return;
+    }
     if(new_name.length > 0){
         filename = new_name + ".SATX";
         $(this).text(new_name + ".SATX");
@@ -9,7 +94,7 @@ $("#graph_name_p").on("click", function(){
     else{
         alert("Please choose a longer Graph name");
     }
-})
+});
 
 $("iframe").load(function(){
     var doc = $(this).contents();
@@ -73,13 +158,7 @@ $("iframe").load(function(){
                     url : '/create_cell/',
                     dataType: "text",
                     success: function (data) {
-                        doc.find("#scene").append('<div id="draggable" class="'.concat(data, '"><h6 class="label">' + data + '</h6><div class="draggable"><div class="highlightBlue"></div><textarea class="textarea_' + data + '" spellcheck="false"></textarea></div></div>'))
-
-                        doc.find(".".concat(data)).css("top", (Math.ceil(pageY / 30 )*30)-4 );
-                        doc.find(".".concat(data)).css("left", (Math.ceil(pageX / 30 )*30)-4 );
-
-                        //Grid system
-                        doc.find(".".concat(data)).draggable({ snap: ".".concat(data), grid: [ 30, 30 ] });
+                        create_cell(doc, data, "");
                     }
                 });
                 break;
@@ -130,13 +209,7 @@ $("iframe").load(function(){
                         'content_type': ''}),
                     contentType: "application/json",
                     success: function (data) {
-                        doc.find("#scene").append('<div id="draggable" class="'.concat(data['cell_name'], '"><h6 class="label">' + data['cell_name'] + '</h6><div class="draggable"><div class="highlightBlue"></div><textarea class="textarea_' + data['content'] + '" spellcheck="false"></textarea></div></div>'))
-
-                        doc.find(".".concat(data['cell_name'])).css("top", (Math.ceil(pageY / 30 )*30)-4 );
-                        doc.find(".".concat(data['cell_name'])).css("left", (Math.ceil(pageX / 30 )*30)-4 );
-
-                        //Grid system
-                        doc.find(".".concat(data['cell_name'])).draggable({ snap: ".".concat(data['cell_name']), grid: [ 30, 30 ] });
+                        create_cell(doc, data['cell_name'], data['content']);
                     }
                 });
         }
@@ -226,10 +299,8 @@ $("iframe").load(function(){
         console.log(old_name);
         var new_name = prompt("Rename cell: ");
         if(new_name.length < 1){
+            alert("Please use a longer cell name");
             return;
-        }
-        else{
-            alert("Please use a longer cell name.");
         }
         has_changed = true;
 
@@ -272,6 +343,7 @@ $("iframe").load(function(){
 
     doc.on("input propertychange", 'textarea', function() {
         currentVal = $(this).val();
+        console.log(clicked_textarea + " " + currentVal);
         $.ajax({
             type : "POST",
             url : '/edit_cell/',
@@ -293,7 +365,6 @@ $("iframe").load(function(){
 //Navbar stuff
 $(document).on("click", "a", function(){
     var attr = $(this).attr("action");
-    console.log(attr);
 
     switch(attr){
         case "shutdown":
@@ -368,16 +439,13 @@ $(document).on("click", "a", function(){
                         'content_type': ''}),
                     contentType: "application/json",
                     success: function (data) {
-                        $("#scene").append('<div id="draggable" class="'.concat(data['cell_name'], '"><h6 class="label">' + data['cell_name'] + '</h6><div class="draggable"><div class="highlightBlue"></div><textarea class="textarea_' + data['content'] + '" spellcheck="false"></textarea></div></div>'))
-
-                        $(".".concat(data['cell_name'])).css("top", (Math.ceil(pageY / 30 )*30)-4 );
-                        $(".".concat(data['cell_name'])).css("left", (Math.ceil(pageX / 30 )*30)-4 );
-
-                        //Grid system
-                        $(".".concat(data['cell_name'])).draggable({ snap: ".".concat(data['cell_name']), grid: [ 30, 30 ] });
+                        create_cell($("iframe").contents(), data['cell_name'], data['content']);
                     }
                 });
             }
+            break;
+        case "load_graph":
+            $('#file-input').trigger('click');
             break;
     }
 })
@@ -411,4 +479,22 @@ function bfs_execute(){
             }
         }
     });
+}
+
+function create_cell(doc, name, content){
+
+    if(num_cells == 0){
+        pageX = 0;
+        pageY = 0;
+    }
+
+    doc.find("#scene").append('<div id="draggable" class="'.concat(name, '"><h6 class="label">' + name + '</h6><div class="draggable"><div class="highlightBlue"></div><textarea class="textarea_' + name + '" spellcheck="false">' + content + '</textarea></div></div>'))
+
+    doc.find(".".concat(name)).css("top", (Math.ceil(pageY / 30 )*30)-4 );
+    doc.find(".".concat(name)).css("left", (Math.ceil(pageX / 30 )*30)-4 );
+
+    //Grid system
+    doc.find(".".concat(name)).draggable({ snap: ".".concat(name), grid: [ 30, 30 ] });
+
+    num_cells += 1;
 }

@@ -349,6 +349,9 @@ class Graph:
                 txt.write(std_file_out)
 
     def bfs_traversal_execute(self, stdout="internal", output_filename="stdout.txt"):
+        if len(self.get_all_cells_edges()[0]) == 0:
+            return
+
         std_file_out = ""
         global dynamic_cell_output
         dynamic_cell_output = ""
@@ -411,7 +414,7 @@ class Graph:
                 fill_with_code = "n\n"
             temp_text = "cell " + c.name + " " + c.content_type + " " + fill_with_code
             if fill_with_code == "y:\n":
-                temp_text += c.content + ";\n"
+                temp_text += c.content + "\n;\n"
 
             txtout += temp_text
 
@@ -437,7 +440,7 @@ class Graph:
                 fill_with_code = "n\n"
             temp_text = "cell " + c.name + " " + c.content_type + " " + fill_with_code
             if fill_with_code == "y:\n":
-                temp_text += c.content + ";\n"
+                temp_text += c.content + "\n;\n"
 
             txtout += temp_text
 
@@ -455,7 +458,7 @@ class Interpreter:
         # Graph object
         self.graph = Graph()
         # Assume live input first
-        self.input_type = "live"
+        self.input_type = "file"
         # This will be set if the user executes a .satx file
         self.file = None
         # This determines whether or not stdout gets sent to an external textbox
@@ -474,6 +477,76 @@ class Interpreter:
             self.input_type = "file"
         except Exception as e:
             print(e)
+
+    def run_string(self, content):
+        self.file = content
+        self.input_type = "file"
+
+        print(content)
+
+        while len(content) > 0:
+            command = content.pop(0).split(" ")
+            print(command)
+
+            if len(command) == 0 or command == '':
+                continue
+
+            elif command[0] == "help":
+                print(self.help_menu())
+
+            elif command[0] == "quit":
+                break
+
+            elif command[0] == "cell":
+                self.create_cell(command)
+
+            elif command[0] == "edit":
+                self.edit_cell(command)
+
+            elif command[0] == "rename":
+                self.rename_cell(command)
+
+            elif command[0] == "remove":
+                self.remove_cell(command)
+
+            elif command[0] == "link":
+                self.link(command)
+
+            elif command[0] == "sever":
+                self.sever(command)
+
+            elif command[0] == "merge":
+                self.merge(command)
+
+            elif command[0] == "swap":
+                self.swap(command)
+
+            elif command[0] == "execute":
+                self.execute(command)
+
+            elif command[0] == "display":
+                self.display(command)
+
+            elif command[0] == "list":
+                self.list_cells()
+
+            elif command[0] == "stdout":
+                self.set_stdout(command)
+
+            elif command[0] == "reset_runtime":
+                self.reset_runtime()
+
+            elif command[0] == "reset_graph":
+                self.reset_graph()
+
+            elif command[0] == "save":
+                self.save_graph(command)
+
+            elif ".satx" in command[0]:
+                self.run_file(command)
+
+            else:
+                print("Syntax error: command \"" + command[0] + "\" not recognized.")
 
     def read_input(self):
         # Read input from stdin or external file. Returns list of command params.
@@ -736,10 +809,15 @@ class Interpreter:
         global local_vars
         local_vars = {}
 
-    def reset_graph(self):
-        confirm = input("Are you sure you want to reset the graph? This will delete all nodes and variables. (y/n) ")
-        if "y" in confirm:
+    def reset_graph(self, ask=True):
+        if(ask):
+            confirm = input("Are you sure you want to reset the graph? This will delete all nodes and variables. (y/n) ")
+            if "y" in confirm:
+                self.graph = Graph()
+                self.reset_runtime()
+        else:
             self.graph = Graph()
+            self.reset_runtime()
 
     def save_graph(self, command):
         """
@@ -932,6 +1010,34 @@ def create_app(test_config=None):
             return render_template("dynamic_cell_output.html", dynamic_cell_output=dynamic_cell_output)
         print(dynamic_cell_output)
         return "done_executing;" + dynamic_cell_output
+
+    @app.route("/load_graph/", methods=["POST"])
+    def load_graph():
+        if(request.get_json()['load_from_file']):
+            interpreter.reset_graph(False)
+            raw = request.get_json()['file_contents']
+            content = raw.split("\n")
+            interpreter.run_string(content)
+
+        cell_names = interpreter.graph.get_all_cells_edges()[0]
+        links = interpreter.graph.get_all_cells_edges()[1]
+
+        names = []
+        contents = []
+        content_types = []
+        outputs = []
+
+        for cn in cell_names:
+            cell = interpreter.graph.get_cell(cn)
+            names.append(cn)
+            contents.append(cell.content)
+            content_types.append(cell.content_type)
+            outputs.append(cell.output)
+
+        return {'names': names,
+                'contents': contents,
+                'content_types': content_types,
+                'links': links}
 
 
     return app
