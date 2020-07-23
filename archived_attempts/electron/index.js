@@ -11,7 +11,7 @@ var window = null;
 app.on('ready',function()
 {
     window = new BrowserWindow({width: window_width,height: window_height,icon: path.join(__dirname,'Icon.png'),webPreferences: {nodeIntegration: true}});
-    window.loadURL('file://' + __dirname + '/views/index.html');
+    window.loadURL('file://' + __dirname + '/views/canvas.html');
 
     var menu = Menu.buildFromTemplate([
         {
