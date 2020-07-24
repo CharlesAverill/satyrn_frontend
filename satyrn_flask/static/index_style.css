@@ -51,6 +51,7 @@ nav .main-menu > li .sub-menu {
     visibility: hidden;
     transition: .4s;
     padding-left: 0px; !important;
+    border-radius: 5px;
 }
 
 nav .main-menu > li .sub-menu::before {

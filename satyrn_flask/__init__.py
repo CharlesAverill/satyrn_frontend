@@ -1061,5 +1061,11 @@ def create_app(test_config=None):
 
         return "true"
 
+    @app.route("/reset_graph/", methods=["POST"])
+    def reset_graph():
+        interpreter.reset_graph(False)
+        interpreter.create_cell(["create_cell", "root", "python", "n"])
+        return "true"
+
 
     return app

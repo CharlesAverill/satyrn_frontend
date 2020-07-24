@@ -158,7 +158,7 @@ $("iframe").load(function(){
                     url : '/create_cell/',
                     dataType: "text",
                     success: function (data) {
-                        create_cell(doc, data, "");
+                        create_cell(doc, data, "", "python");
                     }
                 });
                 break;
@@ -209,7 +209,7 @@ $("iframe").load(function(){
                         'content_type': ''}),
                     contentType: "application/json",
                     success: function (data) {
-                        create_cell(doc, data['cell_name'], data['content']);
+                        create_cell(doc, data['cell_name'], data['content'], data['content_type']);
                     }
                 });
         }
@@ -359,21 +359,17 @@ $("iframe").load(function(){
     });
 });
 
+$(document).on("click", ".shutdown", function(){
+    shutdown();
+})
+
 //Navbar stuff
 $(document).on("click", "a", function(){
     var attr = $(this).attr("action");
 
     switch(attr){
         case "shutdown":
-            if(confirm("This will close the connection. Are you sure?")){
-                $.ajax({
-                    type : "POST",
-                    url : '/shutdown/',
-                    complete: function (s) {
-                        alert("Connection has been closed");
-                    }
-                });
-            }
+            shutdown();
             break;
         case "run_all":
             $.ajax({
@@ -436,7 +432,7 @@ $(document).on("click", "a", function(){
                         'content_type': ''}),
                     contentType: "application/json",
                     success: function (data) {
-                        create_cell($("iframe").contents(), data['cell_name'], data['content']);
+                        create_cell($("iframe").contents(), data['cell_name'], data['content'], data['content_type']);
                     }
                 });
             }
@@ -470,6 +466,42 @@ $(document).on("click", "a", function(){
                     success: function (data) {
                         var ele = $("iframe").contents().find(".textarea_" + clicked_textarea).prev();
                         ele.removeClass().addClass("highlightBlue");
+                    }
+                });
+            }
+            break;
+        case "reset_graph":
+            if(confirm("Resetting the graph will destroy all cells and variables. Are you sure?")){
+                $.ajax({
+                    type : "POST",
+                    url : '/reset_graph/',
+                    complete: function (s) {
+                        alert("Graph has been reset. Tab will now reload.");
+                        location.reload();
+                    }
+                });
+            }
+            break;
+        case "reset_run_all":
+            if(confirm("Resetting the runtime will destroy all variables. Are you sure?")){
+                $.ajax({
+                    type : "POST",
+                    url : '/reset_runtime/',
+                    complete: function (s) {
+                        $.ajax({
+                            type : "POST",
+                            url : '/root_has_outputs/',
+                            complete: function (s) {
+                                if(s['responseText'] == "warning"){
+                                    if(confirm("The root node has no outward links. Code execution starts at root, so this may result in unintended consequences. Continue?")){
+                                        bfs_execute();
+                                    }
+                                }
+                                else{
+                                    bfs_execute();
+                                }
+                            }
+                        });
                     }
                 });
             }
@@ -515,22 +547,22 @@ function create_cell(doc, name, content, contentType){
         pageY = 0;
     }
 
-    console.log(contentType);
-
     var colorClass = "";
     switch(contentType){
         case "python":
-            colorClass = "highlightBlue";
+            colorClass = "Blue";
             break;
         case "markdown":
-            colorClass = "highlightGreen";
+            colorClass = "Green";
             break;
         case "root":
-            colorClass = "highlightRoot";
+            colorClass = "Root";
             break;
     }
 
-    doc.find("#scene").append('<div id="draggable" class="'.concat(name, '"><h6 class="label">' + name + '</h6><div class="draggable"><div class="' + colorClass + '"></div><textarea class="textarea_' + name + '" spellcheck="false">' + content + '</textarea></div></div>'))
+    //    var new_ele = '<div id="draggable" class="' + name + '"><h6 class="label">' + name + '</h6><div class="draggable"><div class="' + colorClass + '"</div><textarea class="textarea_' + name + '" spellcheck="false">' + content + '</textarea></div></div>'
+
+    doc.find("#scene").append('<div id="draggable" class="'.concat(name, '"><h6 class="label">' + name + '</h6><div class="draggable" style="border-radius: 5px;"><div class="highlight' + colorClass + '" style="border-radius: 5px;"></div><textarea class="textarea_' + name + '" spellcheck="false">' + content + '</textarea></div></div>'))
 
     doc.find(".".concat(name)).css("top", (Math.ceil(pageY / 30 )*30)-4 );
     doc.find(".".concat(name)).css("left", (Math.ceil(pageX / 30 )*30)-4 );
@@ -539,4 +571,17 @@ function create_cell(doc, name, content, contentType){
     doc.find(".".concat(name)).draggable({ snap: ".".concat(name), grid: [ 30, 30 ] });
 
     num_cells += 1;
+}
+
+function shutdown(){
+    if(confirm("This will close the connection. Are you sure?")){
+        $.ajax({
+            type : "POST",
+            url : '/shutdown/',
+            complete: function (s) {
+                alert("Connection has been closed");
+            }
+        });
+    }
+    $("#connected_p").text("Disconnected");
 }
