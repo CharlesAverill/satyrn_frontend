@@ -101,6 +101,9 @@ class Cell():
     def execute(self):
         # Execute this cell's content
 
+        if not self.content_type == "python":
+            return
+
         gcopy = global_vars.copy()
         lcopy = local_vars.copy()
 
@@ -337,6 +340,8 @@ class Graph:
             cell.stdout = stdout
 
             p = threading.Thread(target=cell.execute)
+
+            print(cell.content_type)
 
             if cell.content_type == "python":
                 p.start()
@@ -913,6 +918,9 @@ def create_app(test_config=None):
         old_name = data['old_name'].strip()
         new_name = data['new_name'].strip()
 
+        if new_name in interpreter.graph.get_all_cells_edges()[0]:
+            return "false"
+
         interpreter.rename_cell(['edit_cell', old_name, new_name])
 
         return "true"
@@ -1038,6 +1046,20 @@ def create_app(test_config=None):
                 'contents': contents,
                 'content_types': content_types,
                 'links': links}
+
+    @app.route("/set_as_md/", methods=["POST"])
+    def set_as_md():
+        cell_name = request.get_json()['cell_name']
+        interpreter.graph.get_cell(cell_name).content_type = "markdown"
+
+        return "true"
+
+    @app.route("/set_as_py/", methods=["POST"])
+    def set_as_py():
+        cell_name = request.get_json()['cell_name']
+        interpreter.graph.get_cell(cell_name).content_type = "python"
+
+        return "true"
 
 
     return app
