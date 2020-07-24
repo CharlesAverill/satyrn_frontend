@@ -27,7 +27,7 @@ $(window).load(function () {
                 }
                 num_cells = 0;
                 for(var i = 0; i < names.length; i++){
-                    create_cell($("iframe").contents(), names[i], contents[i]);
+                    create_cell($("iframe").contents(), names[i], contents[i], content_types[i]);
                 }
             }
         }
@@ -69,7 +69,7 @@ $("#file-input").change(function(e){
                     num_cells = 0;
 
                     for(var i = 0; i < names.length; i++){
-                        create_cell($("iframe").contents(), names[i], contents[i]);
+                        create_cell($("iframe").contents(), names[i], contents[i], content_types[i]);
                     }
 
                     $("#file-input").val(null);
@@ -259,7 +259,6 @@ $("iframe").load(function(){
                 data: JSON.stringify({'cell_name': clicked_textarea}),
                 contentType: "application/json",
                 complete: function (s) {
-                    console.log(s['responseText']);
                     if(s['responseText'] == "warning"){
                         if(!confirm("Linking to a cell with output links can cause undesired recursion. Are you sure?")){
                             continue_with_link = false;
@@ -296,7 +295,6 @@ $("iframe").load(function(){
 
     doc.on("click", "h6", function(){
         var old_name = $(this).text();
-        console.log(old_name);
         var new_name = prompt("Rename cell: ");
         if(new_name.length < 1){
             alert("Please use a longer cell name");
@@ -325,8 +323,8 @@ $("iframe").load(function(){
                             'new_name': new_name}),
                         contentType: "application/json",
                         success: function (success) {
-                            if(success == "false"){
-                                alert("Couldn't rename cell " + right_clicked_cell);
+                            if(!success){
+                                alert("Couldn't rename cell \"" + old_name + "\" to \"" + new_name + "\", another cell already has this name");
                             }
                             else{
                                 h6.html(new_name);
@@ -343,7 +341,6 @@ $("iframe").load(function(){
 
     doc.on("input propertychange", 'textarea', function() {
         currentVal = $(this).val();
-        console.log(clicked_textarea + " " + currentVal);
         $.ajax({
             type : "POST",
             url : '/edit_cell/',
@@ -447,6 +444,36 @@ $(document).on("click", "a", function(){
         case "load_graph":
             $('#file-input').trigger('click');
             break;
+        case "set_as_md":
+            if(clicked_textarea != ""){
+                $.ajax({
+                    type : "POST",
+                    url : '/set_as_md/',
+                    dataType: "json",
+                    data: JSON.stringify({'cell_name': clicked_textarea}),
+                    contentType: "application/json",
+                    success: function (data) {
+                        var ele = $("iframe").contents().find(".textarea_" + clicked_textarea).prev();
+                        ele.removeClass().addClass("highlightGreen");
+                    }
+                });
+            }
+            break;
+        case "set_as_py":
+            if(clicked_textarea != ""){
+                $.ajax({
+                    type : "POST",
+                    url : '/set_as_py/',
+                    dataType: "json",
+                    data: JSON.stringify({'cell_name': clicked_textarea}),
+                    contentType: "application/json",
+                    success: function (data) {
+                        var ele = $("iframe").contents().find(".textarea_" + clicked_textarea).prev();
+                        ele.removeClass().addClass("highlightBlue");
+                    }
+                });
+            }
+            break;
     }
 })
 
@@ -481,14 +508,29 @@ function bfs_execute(){
     });
 }
 
-function create_cell(doc, name, content){
+function create_cell(doc, name, content, contentType){
 
     if(num_cells == 0){
         pageX = 0;
         pageY = 0;
     }
 
-    doc.find("#scene").append('<div id="draggable" class="'.concat(name, '"><h6 class="label">' + name + '</h6><div class="draggable"><div class="highlightBlue"></div><textarea class="textarea_' + name + '" spellcheck="false">' + content + '</textarea></div></div>'))
+    console.log(contentType);
+
+    var colorClass = "";
+    switch(contentType){
+        case "python":
+            colorClass = "highlightBlue";
+            break;
+        case "markdown":
+            colorClass = "highlightGreen";
+            break;
+        case "root":
+            colorClass = "highlightRoot";
+            break;
+    }
+
+    doc.find("#scene").append('<div id="draggable" class="'.concat(name, '"><h6 class="label">' + name + '</h6><div class="draggable"><div class="' + colorClass + '"></div><textarea class="textarea_' + name + '" spellcheck="false">' + content + '</textarea></div></div>'))
 
     doc.find(".".concat(name)).css("top", (Math.ceil(pageY / 30 )*30)-4 );
     doc.find(".".concat(name)).css("left", (Math.ceil(pageX / 30 )*30)-4 );
