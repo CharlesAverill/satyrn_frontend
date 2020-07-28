@@ -1,10 +1,11 @@
 import os, random, string, json, sys, contextlib, threading
 
 from flask import Flask, send_from_directory, render_template, request
+from contextlib import redirect_stdout
+from io import StringIO
 
 import networkx as nx
 import matplotlib.pyplot as plt
-import io as StringIO
 import tkinter as tk
 
 global global_vars
@@ -12,8 +13,16 @@ global_vars = {}
 global local_vars
 local_vars = {}
 
-global dynamic_cell_output
-dynamic_cell_output = ""
+class DCO:
+
+    def __init__(self, str):
+        self.output = str
+
+    def append(self, str):
+        self.output += str
+
+    def clear(self):
+        self.output = ""
 
 """
 Structure Guide
@@ -86,6 +95,7 @@ class Cell():
     def get_copy(self):
         return Cell(self.name, self.content_type, self.content, self.stdout)
 
+    """
     @contextlib.contextmanager
     def stdoutIO(self, stdout=None):
         old = sys.stdout
@@ -94,6 +104,7 @@ class Cell():
         sys.stdout = stdout
         yield stdout
         sys.stdout = old
+    """
 
     def get_vars(self):
         return self.self_globals, self.self_locals
@@ -115,9 +126,10 @@ class Cell():
                 print(e)
         elif self.stdout == "external":
             try:
-                with self.stdoutIO() as s:
+                f = StringIO()
+                with redirect_stdout(f):
                     exec(self.content, gcopy, lcopy)
-                    self.output = s.getvalue()
+                self.output = f.getvalue()
             except Exception as e:
                 print("Exception occurred in cell " + self.name)
                 print(e)
@@ -126,9 +138,6 @@ class Cell():
 
         global_vars.update(gcopy)
         local_vars.update(lcopy)
-
-        global dynamic_cell_output
-        dynamic_cell_output += self.name + ":\n" + self.output + "\n\n"
 
     def __str__(self):
         return self.name + "\n\n" + "```\n" + self.content + "```\n"
@@ -148,6 +157,8 @@ class Graph:
         local_vars = {}
         # TextIO object
         self.ti = TextIO()
+
+        self.dco = DCO("")
 
         self.executing = False
 
@@ -353,13 +364,14 @@ class Graph:
             with open(output_filename, 'w') as txt:
                 txt.write(std_file_out)
 
-    def bfs_traversal_execute(self, stdout="internal", output_filename="stdout.txt"):
+    def bfs_traversal_execute(self, stdout="external", output_filename="stdout.txt"):
+        import time
         if len(self.get_all_cells_edges()[0]) == 0:
             return
 
-        std_file_out = ""
-        global dynamic_cell_output
-        dynamic_cell_output = ""
+        self.dco.clear()
+
+        std_file_out = "<root>"
 
         self.executing = True
 
@@ -371,9 +383,14 @@ class Graph:
         root.start()
         root.join()
 
+        time.sleep(.05)
+
+        self.dco.append("<" + root_cell.name + ">\n" + root_cell.output)
+
         std_file_out += root_cell.output
 
-        neighbors = self.graph.neighbors(0)
+        n_ = self.graph.neighbors(0)
+        neighbors = [n for n in n_]
 
         while neighbors:
             new_neighbors = []
@@ -387,19 +404,18 @@ class Graph:
                 neighbor.start()
                 processes.append(neighbor)
 
-                new_neighbors.extend(self.graph.neighbors(n))
+                new_neighbors.extend([i for i in self.graph.neighbors(n)])
 
             [proc.join() for proc in processes]
 
             for n in neighbors:
+                time.sleep(.05)
                 neighbor = self.get_cell(self.get_lookup_table()[n])
+                std_file_out += "<" + neighbor.name + ">\n"
                 std_file_out += neighbor.output
+                self.dco.append("<" + neighbor.name + ">\n" + neighbor.output)
 
             neighbors = new_neighbors
-
-        if stdout == "external":
-            with open(output_filename, 'w') as txt:
-                txt.write(std_file_out)
 
         self.executing = False
 
@@ -467,7 +483,7 @@ class Interpreter:
         # This will be set if the user executes a .satx file
         self.file = None
         # This determines whether or not stdout gets sent to an external textbox
-        self.stdout = "internal"
+        self.stdout = "external"
         self.stdout_filename = "stdout.txt"
         # Start loop
         # self.run()
@@ -874,18 +890,63 @@ def create_app(test_config=None):
     def index_style():
         return render_template("index_style.css")
 
+    @app.route("/rubyblue.css")
+    def rubyblue():
+        return render_template("rubyblue.css")
+
     @app.route("/canvas_style.css")
     def canvas_style():
         return render_template("canvas_style.css")
+
+    @app.route("/bootstrap.min.css")
+    def bootstrap_style():
+        return render_template("bootstrap.min.css")
+
+    @app.route("/static/bootstrap.min.css.map")
+    def bootstrap_map():
+        return "idk why this is here but this hides an error"
 
     @app.route("/script.js")
     def script_js():
         return render_template("script.js")
 
+    @app.route("/jquery-1.12.4.js")
+    def jquery_js():
+        return render_template("jquery-1.12.4.js")
+
+    @app.route("/jquery-ui.js")
+    def jquery_ui_js():
+        return render_template("jquery-ui.js")
+
+    @app.route("/jquery-ui.css")
+    def jquery_ui_css():
+        return render_template("jquery-ui.css")
+
+    @app.route("/panzoom.min.js")
+    def panzoom_js():
+        return render_template("panzoom.min.js")
+
+    @app.route("/codemirror.css")
+    def codemirror_css():
+        return render_template("codemirror.css")
+
+    @app.route("/codemirror/lib/codemirror.js")
+    def codemirror_js():
+        return render_template("codemirror/lib/codemirror.js")
+
+    @app.route("/python.js")
+    def py_js():
+        return render_template("python.js")
+
+    @app.route("/markdown.js")
+    def md_js():
+        return render_template("markdown.js")
+
     @app.route("/create_cell/", methods=["GET"])
     def create_cell():
         name = new_name()
         interpreter.create_cell(["create_cell", name, "python", "n"])
+        print(name)
         return name
 
     @app.route("/destroy_cell/", methods=["POST"])
@@ -1013,11 +1074,9 @@ def create_app(test_config=None):
 
     @app.route("/dynamic_cell_output/", methods=["GET"])
     def get_dynamic_cell_output():
-        global dynamic_cell_output
         if interpreter.graph.executing:
-            return render_template("dynamic_cell_output.html", dynamic_cell_output=dynamic_cell_output)
-        print(dynamic_cell_output)
-        return "done_executing;" + dynamic_cell_output
+            return interpreter.graph.dco.output
+        return "<!--SATYRN_DONE_EXECUTING-->" + interpreter.graph.dco.output
 
     @app.route("/load_graph/", methods=["POST"])
     def load_graph():
