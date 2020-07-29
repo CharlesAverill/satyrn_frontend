@@ -266,6 +266,19 @@ $("iframe").load(function(){
                     }
                 });
                 break;
+            case "individual_execute":
+                $.ajax({
+                    type : "POST",
+                    url : '/individual_execute/',
+                    dataType: "json",
+                    data: JSON.stringify({'cell_name': right_clicked_cell}),
+                    contentType: "application/json",
+                    complete: function(){
+                        is_executing = true;
+                        just_finished = false;
+                    }
+                });
+                break;
         }
 
         // Hide it AFTER the action was triggered
@@ -543,6 +556,15 @@ $(document).on("click", "a", function(){
                     }
                 });
             }
+            break;
+        case "clear_dco":
+            $.ajax({
+                type : "POST",
+                url : '/clear_output/',
+                complete: function () {
+                    updateDCO("");
+                }
+            });
             break;
     }
 })

@@ -342,8 +342,6 @@ class Graph:
 
             p = threading.Thread(target=cell.execute)
 
-            print(cell.content_type)
-
             if cell.content_type == "python":
                 p.start()
                 p.join()
@@ -1127,5 +1125,18 @@ def create_app(test_config=None):
 
         return child_name
 
+    @app.route("/individual_execute/", methods=["POST"])
+    def individual_execute():
+        cell_name = request.get_json()['cell_name'].strip()
+        with redirect_stdout(interpreter.std_capture):
+            interpreter.execute(["execute", cell_name])
+
+        return "true"
+
+    @app.route("/clear_output/", methods=["POST"])
+    def clear_dco():
+        interpreter.std_capture = StringIO()
+
+        return "true"
 
     return app
