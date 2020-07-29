@@ -8,10 +8,8 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import tkinter as tk
 
-global global_vars
-global_vars = {}
-global local_vars
-local_vars = {}
+global exec_vars
+exec_vars = {}
 
 class DCO:
 
@@ -106,38 +104,32 @@ class Cell():
         sys.stdout = old
     """
 
-    def get_vars(self):
-        return self.self_globals, self.self_locals
-
     def execute(self):
         # Execute this cell's content
 
         if not self.content_type == "python":
             return
 
-        gcopy = global_vars.copy()
-        lcopy = local_vars.copy()
+        global exec_vars
+        ex_vars_copy = exec_vars.copy()
 
         if self.stdout == "internal":
             try:
-                exec(self.content, gcopy, lcopy)
+                exec(self.content, ex_vars_copy)
             except Exception as e:
                 print("Exception occurred in cell " + self.name)
                 print(e)
         elif self.stdout == "external":
             try:
-                f = StringIO()
-                with redirect_stdout(f):
-                    exec(self.content, gcopy, lcopy)
-                self.output = f.getvalue()
+                print("<" + self.name + ">")
+                exec(self.content, ex_vars_copy)
             except Exception as e:
                 print("Exception occurred in cell " + self.name)
                 print(e)
         else:
             print("stdout setting \"" + self.stdout + "\" not recognized. Please use internal/external.")
 
-        global_vars.update(gcopy)
-        local_vars.update(lcopy)
+        exec_vars.update(ex_vars_copy)
 
     def __str__(self):
         return self.name + "\n\n" + "```\n" + self.content + "```\n"
@@ -151,10 +143,8 @@ class Graph:
         # Dict to keep track of cell names vs networkx node names
         self.names_to_indeces = {}
         # Dictionaries for variables created by cells
-        global global_vars
-        global_vars = {}
-        global local_vars
-        local_vars = {}
+        global exec_vars
+        exec_vars = {}
         # TextIO object
         self.ti = TextIO()
 
@@ -486,7 +476,7 @@ class Interpreter:
         self.stdout = "external"
         self.stdout_filename = "stdout.txt"
         # Start loop
-        # self.run()
+        self.std_capture = StringIO()
 
     def run_file(self, command):
         """
@@ -825,10 +815,8 @@ class Interpreter:
 
     def reset_runtime(self):
         # Delete all runtime variables
-        global global_vars
-        global_vars = {}
-        global local_vars
-        local_vars = {}
+        global exec_vars
+        exec_vars = {}
 
     def reset_graph(self, ask=True):
         if(ask):
@@ -836,9 +824,11 @@ class Interpreter:
             if "y" in confirm:
                 self.graph = Graph()
                 self.reset_runtime()
+                self.std_capture = StringIO()
         else:
             self.graph = Graph()
             self.reset_runtime()
+            self.std_capture = StringIO()
 
     def save_graph(self, command):
         """
@@ -1027,8 +1017,9 @@ def create_app(test_config=None):
 
     @app.route("/bfs_execute/", methods=["POST"])
     def bfs_execute():
-        interpreter.execute(["execute"])
-
+        interpreter.std_capture = StringIO()
+        with redirect_stdout(interpreter.std_capture):
+            interpreter.execute(["execute"])
         return "true"
 
     @app.route("/shutdown/", methods=["POST"])
@@ -1075,8 +1066,8 @@ def create_app(test_config=None):
     @app.route("/dynamic_cell_output/", methods=["GET"])
     def get_dynamic_cell_output():
         if interpreter.graph.executing:
-            return interpreter.graph.dco.output
-        return "<!--SATYRN_DONE_EXECUTING-->" + interpreter.graph.dco.output
+            return interpreter.std_capture.getvalue()
+        return "<!--SATYRN_DONE_EXECUTING-->" + interpreter.std_capture.getvalue() + ("<execution complete>" if len(interpreter.std_capture.getvalue()) > 0 else "")
 
     @app.route("/load_graph/", methods=["POST"])
     def load_graph():
@@ -1125,6 +1116,16 @@ def create_app(test_config=None):
         interpreter.reset_graph(False)
         interpreter.create_cell(["create_cell", "root", "python", "n"])
         return "true"
+
+    @app.route("/child_cell/", methods=["POST"])
+    def add_child():
+        parent_name = request.get_json()['parent_name'].strip()
+        child_name = new_name()
+
+        interpreter.create_cell(["create_cell", child_name, "python", "n"])
+        interpreter.link(['link', parent_name, child_name])
+
+        return child_name
 
 
     return app

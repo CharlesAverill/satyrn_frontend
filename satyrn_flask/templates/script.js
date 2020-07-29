@@ -28,6 +28,19 @@ $(window).load(function () {
                 for(var i = 0; i < names.length; i++){
                     create_cell($("iframe").contents(), names[i], contents[i], content_types[i]);
                 }
+
+                $.ajax({
+                    type : "GET",
+                    url : "/dynamic_cell_output/",
+                    success: function (data) {
+                        if(data.includes("<!--SATYRN_DONE_EXECUTING-->")){
+                            is_executing = false;
+                            just_finished = true;
+                            data = data.substring(28);
+                        }
+                        updateDCO(data);
+                    }
+                });
             }
         }
     });
@@ -68,6 +81,20 @@ $("#file-input").change(function(e){
                     }
 
                     $("#file-input").val(null);
+                    /*
+                    $.ajax({
+                        type : "GET",
+                        url : "/dynamic_cell_output/",
+                        success: function (data) {
+                            if(data.includes("<!--SATYRN_DONE_EXECUTING-->")){
+                                is_executing = false;
+                                just_finished = true;
+                                data = data.substring(28);
+                            }
+                            updateDCO(data);
+                        }
+                    });
+                    */
                 }
             }
         });
@@ -228,7 +255,16 @@ $("iframe").load(function(){
                 });
                 break;
             case "child_cell":
-                create_child_cell(doc, right_clicked_cell);
+                $.ajax({
+                    type : "POST",
+                    url : '/child_cell/',
+                    dataType: "json",
+                    data: JSON.stringify({'parent_name': right_clicked_cell}),
+                    contentType: "application/json",
+                    complete: function(data){
+                        create_cell(doc, data['responseText'], "", "python");
+                    }
+                });
                 break;
         }
 
@@ -544,8 +580,7 @@ function bfs_execute(){
     });
 }
 
-function create_cell(doc, name, content, contentType){
-    console.log("Name: " + name);
+function create_cell(doc, name, content="\n\n\n", contentType){
     if(num_cells == 0){
         pageX = 0;
         pageY = 0;
@@ -553,7 +588,7 @@ function create_cell(doc, name, content, contentType){
 
     var colorClass = contentType == "python" ? "Blue" : "Green";
 
-    doc.find("#scene").append('<div id="draggable" style="width: 240px;" class="'.concat(name, '">' +
+    doc.find("#scene").append('<div id="draggable" class="'.concat(name, '">' +
         '<div style="display: inline-block; margin-right: 10px;">' +
             '<h6 class="label" id="running_' + name + '" style="width: auto">[ ]</h6>' +
         '</div>' +
@@ -564,8 +599,8 @@ function create_cell(doc, name, content, contentType){
             '<div id="textarea_' + name + '" class="highlight' + colorClass + '" style="border-radius: 5px;"></div>' +
         '</div></div>'))
 
-    doc.find(".".concat(name)).css("top", (Math.ceil(pageY / 30 )*30)-4 );
-    doc.find(".".concat(name)).css("left", (Math.ceil(pageX / 30 )*30)-4 );
+    doc.find(".".concat(name)).css("top", (Math.ceil(pageY / 30 )*30)+10 );
+    doc.find(".".concat(name)).css("left", (Math.ceil(pageX / 30 )*30)+10 );
 
     //Grid system
     doc.find(".".concat(name)).draggable({ snap: ".".concat(name), grid: [ 30, 30 ] });
@@ -659,6 +694,13 @@ function add_codemirror_editor(doc, ta_id, value='\n\n', contentType){
                 if(success == "false"){
                     alert("Couldn't edit cell " + right_clicked_cell);
                 }
+            },
+            statusCode: {
+                500: function() {
+                    if(confirm("It seems there was a disconnect. Do you want to reconnect?")){
+                        location.reload();
+                    }
+                }
             }
         });
 
@@ -666,58 +708,4 @@ function add_codemirror_editor(doc, ta_id, value='\n\n', contentType){
     });
 
     return cm;
-}
-
-function create_child_cell(doc, parent_name){
-    $.ajax({
-        type : "GET",
-        url : '/create_cell/',
-        dataType: "text",
-        complete: function (dat) {
-            var child_cell_name = dat['responseText']
-            create_cell(doc, child_cell_name, "", "python");
-
-            $.ajax({
-                type : "POST",
-                url : '/recursion_check/',
-                dataType: "json",
-                data: JSON.stringify({'cell_name': child_cell_name}),
-                contentType: "application/json",
-                complete: function (s) {
-                    if(s['responseText'] == "warning"){
-                        if(confirm("Linking to a cell with output links can cause undesired recursion. Are you sure?")){
-                            $.ajax({
-                                type : "POST",
-                                url : '/link_cells/',
-                                dataType: "json",
-                                data: JSON.stringify({'first': parent_name,
-                                    'second': child_cell_name}),
-                                contentType: "application/json",
-                                success: function (success) {
-                                    if(success == "false"){
-                                        alert("Couldn't link cells " + parent_name + " and " + child_cell_name);
-                                    }
-                                }
-                            });
-                        }
-                    }
-                    else{
-                        $.ajax({
-                            type : "POST",
-                            url : '/link_cells/',
-                            dataType: "json",
-                            data: JSON.stringify({'first': parent_name,
-                                'second': child_cell_name}),
-                            contentType: "application/json",
-                            success: function (success) {
-                                if(success == "false"){
-                                    alert("Couldn't link cells " + parent_name + " and " + child_cell_name);
-                                }
-                            }
-                        });
-                    }
-                }
-            });
-        }
-    });
 }
