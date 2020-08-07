@@ -88,20 +88,21 @@ $("#file-input").change(function(e){
                     }
 
                     $("#file-input").val(null);
-                    /*
+
                     $.ajax({
                         type : "GET",
                         url : "/dynamic_cell_output/",
                         success: function (data) {
                             if(data.includes("<!--SATYRN_DONE_EXECUTING-->")){
-                                is_executing = false;
-                                just_finished = true;
                                 data = data.substring(28);
+                            }
+                            if(data.includes("<execution complete>")){
+                                data = data.substring(0, data.lastIndexOf("<execution complete>"));
                             }
                             updateDCO(data);
                         }
                     });
-                    */
+
                 }
             }
         });
@@ -150,16 +151,20 @@ $("iframe").load(function(){
     });
 
     //panzoom scene
-    //var element = doc.querySelector('#scene');
-
     /*
-    panzoom(element, {
+    var pz_element;
+    document.querySelectorAll('iframe').forEach( item =>
+        pz_element = item.contentWindow.document.body.querySelectorAll('#a')
+    )
+
+
+    panzoom(pz_element, {
         beforeMouseDown: function (e) {
             var shouldIgnore = !e.altKey;
             return shouldIgnore;
         }
     });
-    */
+     */
 
     //Make initial panel draggable
     $(function () {

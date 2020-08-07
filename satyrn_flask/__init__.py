@@ -12,18 +12,6 @@ global exec_vars
 exec_vars = {}
 
 
-class DCO:
-
-    def __init__(self, str):
-        self.output = str
-
-    def append(self, str):
-        self.output += str
-
-    def clear(self):
-        self.output = ""
-
-
 """
 Structure Guide
 
@@ -139,9 +127,10 @@ class Cell():
 
 class Graph:
 
-    def __init__(self):
+    def __init__(self, parent):
         # Networkx Directed graph
         self.graph = nx.DiGraph()
+        self.parent = parent
         # Dict to keep track of cell names vs networkx node names
         self.names_to_indeces = {}
         # Dictionaries for variables created by cells
@@ -149,8 +138,6 @@ class Graph:
         exec_vars = {}
         # TextIO object
         self.ti = TextIO()
-
-        self.dco = DCO("")
 
         self.executing = False
 
@@ -360,8 +347,6 @@ class Graph:
         if len(self.get_all_cells_edges()[0]) == 0:
             return
 
-        self.dco.clear()
-
         std_file_out = "<root>"
 
         self.executing = True
@@ -375,8 +360,6 @@ class Graph:
         root.join()
 
         time.sleep(.05)
-
-        self.dco.append("<" + root_cell.name + ">\n" + root_cell.output)
 
         std_file_out += root_cell.output
 
@@ -404,7 +387,6 @@ class Graph:
                 neighbor = self.get_cell(self.get_lookup_table()[n])
                 std_file_out += "<" + neighbor.name + ">\n"
                 std_file_out += neighbor.output
-                self.dco.append("<" + neighbor.name + ">\n" + neighbor.output)
 
             neighbors = new_neighbors
 
@@ -461,6 +443,11 @@ class Graph:
             name2 = lookup_table[e[1]]
             txtout += "link " + name1 + " " + name2 + "\n"
 
+        if self.parent.std_capture.getvalue():
+            txtout += "<!--SATYRN_DCO_START-->\n"
+            txtout += self.parent.std_capture.getvalue()
+            txtout += "<execution complete>\n<!--SATYRN_DCO_END-->"
+
         return txtout
 
     def get_py_file(self):
@@ -486,7 +473,7 @@ class Interpreter:
 
     def __init__(self):
         # Graph object
-        self.graph = Graph()
+        self.graph = Graph(self)
         # Assume live input first
         self.input_type = "file"
         # This will be set if the user executes a .satx file
@@ -512,11 +499,22 @@ class Interpreter:
         self.file = content
         self.input_type = "file"
 
-        print(content)
+        reading_dco_output = False
 
         while len(content) > 0:
             command = content.pop(0).split(" ")
             print(command)
+
+            if "<!--SATYRN_DCO_START-->" in command[0]:
+                reading_dco_output = True
+                continue
+            if "<!--SATYRN_DCO_END-->" in command[0]:
+                reading_dco_output = False
+                continue
+
+            if reading_dco_output:
+                self.std_capture.write(" ".join(command) + "\n")
+                continue
 
             if len(command) == 0 or command == '':
                 continue
@@ -575,7 +573,7 @@ class Interpreter:
             elif ".satx" in command[0]:
                 self.run_file(command)
 
-            else:
+            elif command[0]:
                 print("Syntax error: command \"" + command[0] + "\" not recognized.")
 
     def read_input(self):
@@ -844,11 +842,11 @@ class Interpreter:
             confirm = input(
                 "Are you sure you want to reset the graph? This will delete all nodes and variables. (y/n) ")
             if "y" in confirm:
-                self.graph = Graph()
+                self.graph = Graph(self)
                 self.reset_runtime()
                 self.std_capture = StringIO()
         else:
-            self.graph = Graph()
+            self.graph = Graph(self)
             self.reset_runtime()
             self.std_capture = StringIO()
 
@@ -1101,7 +1099,7 @@ def create_app(test_config=None):
 
     @app.route("/load_graph/", methods=["POST"])
     def load_graph():
-        if (request.get_json()['load_from_file']):
+        if request.get_json()['load_from_file']:
             interpreter.reset_graph(False)
             raw = request.get_json()['file_contents']
             content = raw.split("\n")
