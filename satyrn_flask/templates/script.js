@@ -180,6 +180,8 @@ $("iframe").load(function(){
         var cl = $(this).attr("class");
 
         right_clicked_cell = cl.substring(0, cl.indexOf("ui-draggable") - 1);
+        console.log(right_clicked_cell);
+        console.log(cl);
 
         // Show contextmenu
         doc.find(".custom-menu").finish().toggle(100).
@@ -309,7 +311,6 @@ $("iframe").load(function(){
             // Hide it
             doc.find(".custom-menu").hide(100);
 
-            right_clicked_cell = "";
             clicked_textarea = "";
         }
     });
@@ -635,6 +636,28 @@ $(document).on("click", "a, li", function(){
                 }
             });
             break;
+        case "save_as_py":
+            var satx_text = "";
+            $.ajax({
+                type : "POST",
+                url : '/get_py_text/',
+                dataType: "json",
+                data: JSON.stringify({'text': ""}),
+                contentType: "application/json",
+                complete: function (s) {
+                    satx_text = s['responseText'];
+
+                    var dwnld_ele = document.createElement('a');
+                    dwnld_ele.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURI(satx_text));
+                    dwnld_ele.setAttribute('download', filename.substring(0, filename.length - 4) + "py");
+
+                    dwnld_ele.style.display = 'none';
+                    document.body.appendChild(dwnld_ele);
+                    dwnld_ele.click();
+                    document.body.removeChild(dwnld_ele);
+                }
+            });
+            break;
     }
 })
 
@@ -839,11 +862,11 @@ var debounce_func = debounce(function(){
         just_finished = false;
         is_executing = false;
     }
-}, 500);
+}, 100);
 
 window.setInterval(function(){
     debounce_func();
-}, 1000);
+}, 200);
 
 function add_codemirror_editor(doc, ta_id, value='\n\n', contentType){
     var cm = CodeMirror(doc.querySelector(ta_id), {

@@ -11,6 +11,7 @@ import tkinter as tk
 global exec_vars
 exec_vars = {}
 
+
 class DCO:
 
     def __init__(self, str):
@@ -21,6 +22,7 @@ class DCO:
 
     def clear(self):
         self.output = ""
+
 
 """
 Structure Guide
@@ -461,6 +463,24 @@ class Graph:
 
         return txtout
 
+    def get_py_file(self):
+        txtout = ""
+
+        lookup_table = self.get_lookup_table()
+        cell_names, edges, _ = self.get_all_cells_edges()
+        cells = [self.get_cell(cn) for cn in cell_names]
+
+        for c in cells:
+            txtout += "# <" + c.name + ">\n"
+            if c.content_type == "python":
+                txtout += c.content + "\n"
+            else:
+                txtout += "\"\"\"\n" + c.content + "\n\"\"\"\n"
+
+        txtout += "# <EOF>"
+
+        return txtout
+
 
 class Interpreter:
 
@@ -820,8 +840,9 @@ class Interpreter:
         exec_vars = {}
 
     def reset_graph(self, ask=True):
-        if(ask):
-            confirm = input("Are you sure you want to reset the graph? This will delete all nodes and variables. (y/n) ")
+        if (ask):
+            confirm = input(
+                "Are you sure you want to reset the graph? This will delete all nodes and variables. (y/n) ")
             if "y" in confirm:
                 self.graph = Graph()
                 self.reset_runtime()
@@ -840,16 +861,20 @@ class Interpreter:
             return
         self.graph.save_graph(command[1])
 
+
 interpreter = Interpreter()
+
 
 def new_name():
     letters_and_digits = string.ascii_letters + string.digits
     result_str = ''.join((random.choice(letters_and_digits) for i in range(5)))
     return result_str
 
+
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
+    app.root_path = os.path.dirname(os.path.abspath(__file__))
     app.config.from_mapping(
         SECRET_KEY='dev'
     )
@@ -1017,7 +1042,7 @@ def create_app(test_config=None):
         first = data['first'].strip()
         second = data['second'].strip()
 
-        if(first == second):
+        if (first == second):
             return "false"
 
         interpreter.link(['link', first, second])
@@ -1033,12 +1058,7 @@ def create_app(test_config=None):
 
     @app.route("/shutdown/", methods=["POST"])
     def shutdown():
-        funct = request.environ.get('werkzeug.server.shutdown')
-        if funct is None:
-            raise RuntimeError("Not running with the Werkzeug Server")
-        funct()
-
-        return "done"
+        raise KeyboardInterrupt
 
     @app.route("/get_satx_text/", methods=["POST"])
     def get_satx_text():
@@ -1076,11 +1096,12 @@ def create_app(test_config=None):
     def get_dynamic_cell_output():
         if interpreter.graph.executing:
             return interpreter.std_capture.getvalue()
-        return "<!--SATYRN_DONE_EXECUTING-->" + interpreter.std_capture.getvalue() + ("<execution complete>" if len(interpreter.std_capture.getvalue()) > 0 else "")
+        return "<!--SATYRN_DONE_EXECUTING-->" + interpreter.std_capture.getvalue() + (
+            "<execution complete>" if len(interpreter.std_capture.getvalue()) > 0 else "")
 
     @app.route("/load_graph/", methods=["POST"])
     def load_graph():
-        if(request.get_json()['load_from_file']):
+        if (request.get_json()['load_from_file']):
             interpreter.reset_graph(False)
             raw = request.get_json()['file_contents']
             content = raw.split("\n")
@@ -1149,5 +1170,10 @@ def create_app(test_config=None):
         interpreter.std_capture = StringIO()
 
         return "true"
+
+    @app.route("/get_py_text/", methods=["POST"])
+    def get_py_text():
+        py_txt = interpreter.graph.get_py_file()
+        return py_txt
 
     return app
