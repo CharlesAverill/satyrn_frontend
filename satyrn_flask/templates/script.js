@@ -23,6 +23,8 @@ $(window).load(function () {
             var contents = data['contents'];
             var content_types = data['content_types'];
             var links = data['links'];
+            var tops = data['tops'];
+            var lefts = data['lefts'];
 
             if(names.length != contents.length){
                 alert("Loading error: names and contents are not congruent")
@@ -33,7 +35,8 @@ $(window).load(function () {
                 }
                 removeDraggables();
                 for(var i = 0; i < names.length; i++){
-                    create_cell($("iframe").contents(), names[i], contents[i], content_types[i]);
+                    console.log(tops[i]);
+                    create_cell($("iframe").contents(), names[i], contents[i], content_types[i], tops[i], lefts[i]);
                 }
 
                 $.ajax({
@@ -470,12 +473,24 @@ $(document).on("click", "a, li", function(){
             });
             break;
         case "save_graph_as":
+            var dict = {'names': [], 'tops': [], 'lefts': []};
+            var doc = $("iframe").contents();
+
+            $(doc).find(".ui-draggable").each( function(){
+                var cell_name = $(this).attr("class").substring(0, $(this).attr("class").indexOf("ui-draggable"));
+                var top = $(this).css("top");
+                var left = $(this).css("left");
+                dict['names'].push(cell_name);
+                dict['tops'].push(top);
+                dict['lefts'].push(left);
+            });
+
             var satx_text = "";
             $.ajax({
                 type : "POST",
                 url : '/get_satx_text/',
                 dataType: "json",
-                data: JSON.stringify({'text': ""}),
+                data: JSON.stringify(dict),
                 contentType: "application/json",
                 complete: function (s) {
                     satx_text = s['responseText'];
@@ -701,7 +716,7 @@ function bfs_execute(){
 
 var codemirrors = [];
 
-function create_cell(doc, name, content="\n\n\n", contentType){
+function create_cell(doc, name, content="", contentType, top=(Math.ceil(pageY / 30 )*30)+10, left=(Math.ceil(pageX / 30 )*30)+10){
     if(num_cells == 0){
         pageX = 0;
         pageY = 0;
@@ -720,8 +735,8 @@ function create_cell(doc, name, content="\n\n\n", contentType){
             '<div id="textarea_' + name + '" class="highlight' + colorClass + '" style="border-radius: 5px;"></div>' +
         '</div></div>'))
 
-    doc.find(".".concat(name)).css("top", (Math.ceil(pageY / 30 )*30)+10 );
-    doc.find(".".concat(name)).css("left", (Math.ceil(pageX / 30 )*30)+10 );
+    doc.find(".".concat(name)).css("top", top );
+    doc.find(".".concat(name)).css("left", left );
 
     //Grid system
     doc.find(".".concat(name)).draggable({ snap: ".".concat(name), grid: [ 30, 30 ] });

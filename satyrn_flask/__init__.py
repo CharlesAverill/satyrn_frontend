@@ -80,6 +80,9 @@ class Cell():
         self.stdout = stdout
         self.output = ""
 
+        self.top = 10
+        self.left = 10
+
     def get_copy(self):
         return Cell(self.name, self.content_type, self.content, self.stdout)
 
@@ -500,6 +503,7 @@ class Interpreter:
         self.input_type = "file"
 
         reading_dco_output = False
+        reading_positioning = False
 
         while len(content) > 0:
             command = content.pop(0).split(" ")
@@ -514,6 +518,19 @@ class Interpreter:
 
             if reading_dco_output:
                 self.std_capture.write(" ".join(command) + "\n")
+                continue
+
+            if "<!--SATYRN_POSITIONING_START-->" in command[0]:
+                reading_positioning = True
+                continue
+
+            if "<!--SATYRN_POSITIONING_END-->" in command[0]:
+                reading_positioning = False
+                continue
+
+            if reading_positioning:
+                self.graph.get_cell(command[0]).left = command[1]
+                self.graph.get_cell(command[0]).top = command[2]
                 continue
 
             if len(command) == 0 or command == '':
@@ -1026,12 +1043,15 @@ def create_app(test_config=None):
         c = 0
 
         nodes, _, edge_names = interpreter.graph.get_all_cells_edges()
+        root_cell_name = interpreter.graph.get_cell("", 0).name
+
         for e in edge_names:
-            if e[0] == "root":
+            if e[0] == root_cell_name:
                 c += 1
 
         if c > 0:
             return "safe"
+
         return "warning"
 
     @app.route("/link_cells/", methods=["POST"])
@@ -1060,8 +1080,20 @@ def create_app(test_config=None):
 
     @app.route("/get_satx_text/", methods=["POST"])
     def get_satx_text():
-        satx_txt = interpreter.graph.get_satx_as_txt()
-        return satx_txt
+        data = request.get_json()
+        names = data['names']
+        lefts = data['lefts']
+        tops = data['tops']
+
+        satx_text = interpreter.graph.get_satx_as_txt()
+        satx_text += "\n<!--SATYRN_POSITIONING_START-->"
+
+        for i in range(len(names)):
+            satx_text += "\n" + names[i] + lefts[i] + " " + tops[i]
+
+        satx_text += "\n<!--SATYRN_POSITIONING_END-->"
+
+        return satx_text
 
     @app.route("/reset_runtime/", methods=["POST"])
     def reset_runtime():
@@ -1112,6 +1144,8 @@ def create_app(test_config=None):
         contents = []
         content_types = []
         outputs = []
+        lefts = []
+        tops = []
 
         for cn in cell_names:
             cell = interpreter.graph.get_cell(cn)
@@ -1119,11 +1153,15 @@ def create_app(test_config=None):
             contents.append(cell.content)
             content_types.append(cell.content_type)
             outputs.append(cell.output)
+            lefts.append(cell.left)
+            tops.append(cell.top)
 
         return {'names': names,
                 'contents': contents,
                 'content_types': content_types,
-                'links': links}
+                'links': links,
+                'lefts': lefts,
+                'tops': tops}
 
     @app.route("/set_as_md/", methods=["POST"])
     def set_as_md():
