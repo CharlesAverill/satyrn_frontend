@@ -17,7 +17,7 @@
   },
   "homepage": "https://github.com/CharlesAverill/satyrn_frontend#readme",
   "dependencies": {
-    "electron": "^9.1.0",
+    "electron": "^25.3.0",
     "electron-reload": "^1.5.0",
     "python-shell": "^2.0.1"
   }
